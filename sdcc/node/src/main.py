@@ -1,7 +1,7 @@
 import time
 import socket
 import json
-from src.algorithm import *
+from .ring import *
 
 
 class Node:
