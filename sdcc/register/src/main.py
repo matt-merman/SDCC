@@ -1,62 +1,73 @@
 import socket
-import sys
-import json
 import time
 from threading import Thread
+from random import randint
+import json
 
 
 class Register:
 
     def __init__(self):
 
-        self.ip = "192.168.1.7"
-        self.port = 12345
-        self.log = []
         self.address_nodes = []
-        self.reception_window = 5  # seconds
+        self.log = []
+        self.reception_window = 10  # seconds
+        self.socket = None
+        self.start()
 
-    def receive(self, socket):
+    def receive(self):
 
+        self.socket.settimeout(10)
         while True:
-            # recvfrom() is blocking
-            data, address = socket.recvfrom(4096)
-            # add data to a list
-            # need a mutex to write on it
-            self.address_nodes.append(address)
-            self.log.append(data.decode('utf-8'))
+            try:
+                _, addr = self.socket.recvfrom(4096)
+                id = randint(0, 1000)
+                node = dict({'ip': addr[0], 'port': addr[1], 'id': id})
+                self.log.append(node)
+                self.address_nodes.append(addr)
+            except socket.timeout:
+                break
 
-    # open a connection
-    def listen(self):
+        self.socket.close()
 
-        # Create a UDP socket
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        # Bind the socket to the port
-        server_address = (self.ip, self.port)
-        s.bind(server_address)
+    def start(self):
 
-        thread = Thread(target=self.receive, args=(s, ))
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        server_address = ('localhost', 0)
+        self.socket.bind(server_address)
+        info = self.socket.getsockname()
+        self.update_conf(info[1])
+
+        thread = Thread(target=self.receive)
         thread.start()
 
-        timeout_start = time.time() + self.reception_window
         # in listening for a while
-        while time.time() < timeout_start:
+        timeout = time.time() + self.reception_window
+        while time.time() < timeout:
             continue
 
-        # need to kill thread
-        # ...
-        # perhaps I'll need to use process
+        self.send()
 
-        self.send_log(s)
+    def send(self):
 
-    def send_log(self, s):
+        self.log.sort(key=lambda x: x["id"])
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        server_address = ('localhost', 0)
+        s.bind(server_address)
 
-        # need to generate the IDs for all nodes
-        # ...
+        for node in range(len(self.address_nodes)):
 
-        # send list to all nodes
-        for i in range(len(self.address_nodes)):
-
-            address = self.address_nodes[i]
-            s.sendto(str(self.log).encode('utf-8'), address)
+            addr = self.address_nodes[node][0]
+            port = self.address_nodes[node][1]
+            data = str(self.log).encode('utf-8')
+            self.socket.sendto(data, (addr, port))
 
         s.close()
+
+    def update_conf(self, port):
+        with open("../config.json", "r+") as jsonFile:
+            data = json.load(jsonFile)
+            data["register"]["port"] = port
+            jsonFile.seek(0)  # rewind
+            json.dump(data, jsonFile)
+            jsonFile.truncate()

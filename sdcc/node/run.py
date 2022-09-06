@@ -4,10 +4,7 @@ import sys
 
 def run():
 
-    id = int(sys.argv[1])
-    port = int(sys.argv[2])
-    debug = int(sys.argv[3])
-    node = Node(id, port, debug)
+    node = Node()
     node.initialize()
 
 

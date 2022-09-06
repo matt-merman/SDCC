@@ -10,6 +10,13 @@ def get_index(id, list):
     return 0
 
 
+def get_id(port, list):
+    for item in list:
+        if item.get('port') == port:
+            return item.get('id')
+    return 0
+
+
 def get_dest(id, list):
     index = get_index(id, list) + 1
     if (index >= len(list)):

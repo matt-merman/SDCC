@@ -1,10 +1,10 @@
-from src.main import * 
+from src.main import *
 
 
 def run():
-    
-    register = Register()
-    register.listen()
+
+    Register()
+
 
 if __name__ == '__main__':
     run()

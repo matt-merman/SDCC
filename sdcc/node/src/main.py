@@ -1,4 +1,3 @@
-import time
 import socket
 import json
 from .ring import *
@@ -6,16 +5,16 @@ from .ring import *
 
 class Node:
 
-    def __init__(self, id, port, type):
+    def __init__(self):
 
-        self.ip_register = "192.168.1.7"
-        self.port_register = 12345
+        with open("../config.json", "r") as config_file:
+            config = json.load(config_file)
+
+        self.port_register = config["register"]["port"]
+        self.ip_register = config["register"]["ip"]
 
         self.ip = "localhost"
-        self.id = id
-        self.port = port
-        self.type = type
-
+        self.port = None
         self.algorithm = False   # True for bully alg.
 
     # send node's info to register node using UDP
@@ -23,24 +22,17 @@ class Node:
     def initialize(self):
 
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
-        address = (self.ip, self.port)
+        address = (self.ip, 0)
         s.bind(address)
 
-        #self.port = s.getsockname()[1]
+        info = s.getsockname()
+        self.port = info[1]
 
-        info = json.dumps({'ip': self.ip, 'port': self.port, 'id': self.id})
-        #s.sendto(info.encode('utf-8'), (self.ip_register, self.port_register))
+        s.sendto("".encode('utf-8'), (self.ip_register, self.port_register))
 
-        # receiving
-        #data, address = s.recvfrom(4096)
-        #data = eval(data.decode('utf-8'))
-        #print("Received: \n" + str(data))
+        data, address = s.recvfrom(4096)
+        data = eval(data.decode('utf-8'))
+        print("Received: \n" + str(data))
 
-        data = [{"ip": "localhost", "port": 54322, "id": 456},
-                {"ip": "localhost", "port": 54323, "id": 789},
-                {"ip": "localhost", "port": 54321, "id": 123}
-                ]
-
-        data.sort(key=lambda x: x["id"])
-
-        Ring(self.ip, self.port, self.id, data, s)
+        id = get_id(self.port, data)
+        Ring(self.ip, self.port, id, data, s)
