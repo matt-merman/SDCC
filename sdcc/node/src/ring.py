@@ -1,7 +1,8 @@
 from enum import Enum
 import time
 import threading as thr
-import logging
+
+from .verbose import *
 from .helpers import *
 
 # type: 0 - starting election, 1 - ending election, 2 - heartbeat, 3 - ACK
@@ -18,14 +19,9 @@ class Type(Enum):
 
 class Ring():
 
-    def __init__(self, ip, port, id, nodes, socket):
+    def __init__(self, ip, port, id, nodes, socket, verbose):
 
-        logging.basicConfig(
-            level=logging.DEBUG,
-            format="[%(levelname)s] %(asctime)s\n%(message)s",
-            datefmt='%b-%d-%y %I:%M:%S'
-        )
-
+        self.verbose = verbose
         self.ip = ip
         self.port = port
         self.id = id
@@ -36,12 +32,9 @@ class Ring():
         # initially, every process is marked as a non-participant in an election
         self.participant = True
         self.ack = False
-
-        logging.debug("[INFO]-(ip:{} port:{} id:{})".format(
-            self.ip, self.port, self.id))
-
+        self.logging = set_logging()
         # thread is listening for msg
-        time.sleep(10)
+        # time.sleep(10)
         thread = thr.Thread(target=self.starting)
         thread.start()
 
@@ -55,15 +48,15 @@ class Ring():
             self.coordinator = data["id"]
             dest = get_dest(self.id, self.nodes)
             self.forwarding(data, Type['ENDING'].value, dest)
-        return
 
     def ack(self, data):
         ip_dest = data["ip"]
         port_dest = data["port"]
         dest = (ip_dest, port_dest)
         self.forwarding(self.id, Type['ACK'].value, dest)
-        print("Node {id: %d} received heartbeat msg" % (self.id, ))
-        return
+        if self.verbose:
+            self.logging.debug("Node: (ip:{} port:{} id:{})\nReceived Ack\n".format(
+                self.ip, self.port, self.id))
 
     def receiving(self, data):
 
@@ -82,25 +75,32 @@ class Ring():
         elif id == self.id:
             self.participant = False
             self.coordinator = self.id
-            print("Election's end")
+            if self.verbose:
+                self.logging.debug("Node: (ip:{} port:{} id:{})\nElected as Coordinator\n".format(
+                    self.ip, self.port, self.id))
+
             self.forwarding(data["id"], Type['ENDING'].value, dest)
             return
 
         self.forwarding(data["id"], Type['STARTING'].value, dest)
-        return
 
     def starting(self):
 
-        print("Node {id: %d} started election" % (self.id, ))
+        if self.verbose:
+            self.logging.debug("Node: (ip:{} port:{} id:{})\nStarts election\n".format(
+                self.ip, self.port, self.id))
+
         dest = get_dest(self.id, self.nodes)
         self.forwarding(self.id, Type['STARTING'].value, dest)
 
         while(1):
 
-            data, _ = self.socket.recvfrom(4096)
+            data, address = self.socket.recvfrom(4096)
             data = eval(data.decode('utf-8'))
-            print("Node {id: %d} received msg" %
-                  (self.id))
+
+            if self.verbose:
+                self.logging.debug("Node: (ip:{} port:{} id:{})\nSender: (ip:{} port:{})\nMessage: {}\n".format(
+                    self.ip, self.port, self.id, address[0], address[1], data))
 
             type_one = Type['STARTING'].value
             type_two = Type['ENDING'].value
@@ -127,7 +127,9 @@ class Ring():
             if self.participant or (self.coordinator == self.id):
                 continue
 
-            print("Node {id: %d} starts heartbeat" % (self.id, ))
+            if self.verbose:
+                self.logging.debug("Node: (ip:{} port:{} id:{})\nStarts Election\n".format(
+                    self.ip, self.port, self.id))
 
             index = get_index(self.coordinator, self.nodes)
             info = self.nodes[index]
@@ -138,7 +140,9 @@ class Ring():
             while not self.ack:
                 None
 
-            print("Node {id: %d} ends heartbeat" % (self.id, ))
+            if self.verbose:
+                self.logging.debug("Node: (ip:{} port:{} id:{})\nEnds Election\n".format(
+                    self.ip, self.port, self.id))
 
     def forwarding(self, id, type, dest):
         msg = create_msg(id, type, 0, self.ip)

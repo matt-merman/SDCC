@@ -1,11 +1,13 @@
 import socket
 import json
+
+from .verbose import *
 from .ring import *
 
 
 class Node:
 
-    def __init__(self):
+    def __init__(self, verbose):
 
         with open("../config.json", "r") as config_file:
             config = json.load(config_file)
@@ -16,9 +18,13 @@ class Node:
         self.ip = "localhost"
         self.port = None
         self.algorithm = False   # True for bully alg.
+        self.verbose = verbose
+        self.logging = set_logging()
+        self.initialize()
 
     # send node's info to register node using UDP
     # and wait for complete list of participates
+
     def initialize(self):
 
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
@@ -32,7 +38,10 @@ class Node:
 
         data, address = s.recvfrom(4096)
         data = eval(data.decode('utf-8'))
-        print("Received: \n" + str(data))
-
         id = get_id(self.port, data)
-        Ring(self.ip, self.port, id, data, s)
+
+        if self.verbose:
+            self.logging.debug("Node: (ip:{} port:{} id:{})\nSender: (ip:{} port:{})\nMessage: {}\n".format(
+                self.ip, self.port, id, address[0], address[1], data))
+
+        Ring(self.ip, self.port, id, data, s, self.verbose)
