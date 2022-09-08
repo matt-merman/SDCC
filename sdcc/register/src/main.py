@@ -24,7 +24,7 @@ class Register:
         self.socket.settimeout(SOCKET_TIMEOUT)
         while True:
             try:
-                data, addr = self.socket.recvfrom(4096)
+                _, addr = self.socket.recvfrom(4096)
                 id = randint(MIN, MAX)
                 node = dict({'ip': addr[0], 'port': addr[1], 'id': id})
                 self.log.append(node)
@@ -65,14 +65,14 @@ class Register:
         server_address = ('localhost', 0)
         s.bind(server_address)
 
-        info = self.socket.getsockname()
+        info = s.getsockname()
 
         for node in range(len(self.address_nodes)):
 
             addr = self.address_nodes[node][0]
             port = self.address_nodes[node][1]
             data = str(self.log).encode('utf-8')
-            self.socket.sendto(data, (addr, port))
+            s.sendto(data, (addr, port))
 
         if self.verbose:
             self.logging.debug("Register: (ip:{} port:{}))\nmessage: {}\n".format(

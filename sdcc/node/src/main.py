@@ -3,11 +3,12 @@ import json
 
 from .verbose import *
 from .ring import *
+from .bully import *
 
 
 class Node:
 
-    def __init__(self, verbose):
+    def __init__(self, verbose, algorithm):
 
         with open("../config.json", "r") as config_file:
             config = json.load(config_file)
@@ -17,7 +18,7 @@ class Node:
 
         self.ip = "localhost"
         self.port = None
-        self.algorithm = False   # True for bully alg.
+        self.algorithm = algorithm   # True for bully alg.
         self.verbose = verbose
         self.logging = set_logging()
         self.initialize()
@@ -44,4 +45,7 @@ class Node:
             self.logging.debug("Node: (ip:{} port:{} id:{})\nSender: (ip:{} port:{})\nMessage: {}\n".format(
                 self.ip, self.port, id, address[0], address[1], data))
 
-        Ring(self.ip, self.port, id, data, s, self.verbose)
+        if self.algorithm:
+            Bully(self.ip, self.port, id, data, s, self.verbose)
+        else:
+            Ring(self.ip, self.port, id, data, s, self.verbose)
