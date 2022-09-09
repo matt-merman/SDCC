@@ -35,12 +35,10 @@ class Ring():
         self.logging = set_logging()
         # thread is listening for msg
         # time.sleep(10)
-        thread = thr.Thread(target=self.starting)
+        thread = thr.Thread(target=self.listening)
         thread.start()
 
-        # thread is sending heartbeat msg
-        thread = thr.Thread(target=self.heartbeat)
-        thread.start()
+        self.heartbeat()
 
     def end(self, data):
         if self.coordinator != self.id:
@@ -84,7 +82,7 @@ class Ring():
 
         self.forwarding(data["id"], Type['STARTING'].value, dest)
 
-    def starting(self):
+    def listening(self):
 
         if self.verbose:
             self.logging.debug("Node: (ip:{} port:{} id:{})\nStarts election\n".format(
@@ -93,7 +91,7 @@ class Ring():
         dest = get_dest(self.id, self.nodes)
         self.forwarding(self.id, Type['STARTING'].value, dest)
 
-        while(1):
+        while True:
 
             data, address = self.socket.recvfrom(4096)
             data = eval(data.decode('utf-8'))
@@ -105,9 +103,8 @@ class Ring():
             type_one = Type['STARTING'].value
             type_two = Type['ENDING'].value
             type_three = Type['ACK'].value
-            type_four = Type['HEARTBEAT'].value
 
-            if data["type"] == type_four:
+            if data["type"] == Type['HEARTBEAT'].value:
                 self.ack = True
                 continue
 
@@ -120,7 +117,7 @@ class Ring():
 
     def heartbeat(self):
 
-        while(True):
+        while True:
 
             time.sleep(HEARTBEAT_TIME)
 
