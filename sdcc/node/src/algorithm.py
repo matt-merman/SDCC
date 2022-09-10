@@ -4,6 +4,8 @@ import time
 from .verbose import *
 from .helpers import *
 from .constants import *
+from abc import ABC, abstractmethod
+from threading import *
 
 
 class Type(Enum):
@@ -13,7 +15,7 @@ class Type(Enum):
     HEARTBEAT = 3
 
 
-class Algorithm():
+class Algorithm(ABC):
 
     def __init__(self, ip, port, id, nodes, socket, verbose):
 
@@ -23,10 +25,57 @@ class Algorithm():
         self.id = id
         self.nodes = nodes
         self.socket = socket
-        self.coordinator = None
+        self.coordinator = -1
 
         self.logging = set_logging()
         self.participant = False
+
+        # variable only for ring-based alg.
+        self.number_crash = 1
+
+        thread = Thread(target=self.listening)
+        thread.start()
+        self.start_election()
+        Algorithm.heartbeat(self)
+
+    @abstractmethod
+    def start_election(self):
+        pass
+
+    @abstractmethod
+    def end_election(self):
+        pass
+
+    @abstractmethod
+    def election_msg(self):
+        pass
+
+    def listening(self):
+
+        while True:
+
+            data, address = self.socket.recvfrom(BUFF_SIZE)
+            data = eval(data.decode('utf-8'))
+
+            if self.verbose:
+                self.logging.debug("Node: (ip:{} port:{} id:{})\nSender: (ip:{} port:{})\nMessage: {}\n".format(
+                    self.ip, self.port, self.id, address[0], address[1], data))
+
+            if data["type"] == Type['HEARTBEAT'].value:
+                Algorithm.forwarding(
+                    self, self.socket, self.id, Type['ACK'].value, address, (self.ip, self.port))
+                continue
+
+            type = {Type['ELECTION'].value: self.election_msg,
+                    Type['END_ELECT'].value: self.end_election
+                    }
+
+            type[data["type"]](data)
+
+    def crash(self, socket):
+        socket.settimeout(None)
+        self.number_crash += 1
+        self.start_election()
 
     def heartbeat(self):
 
@@ -64,14 +113,10 @@ class Algorithm():
                             address[0], address[1], self.id))
                     continue
                 else:
-                    print("Wrong packet received\n")
-                    s.settimeout(None)
-                    self.start_election()
+                    self.crash(s)
 
             except socket.timeout:
-                print("timeout for ACK\n")
-                s.settimeout(None)
-                self.start_election()
+                self.crash(s)
 
     def forwarding(self, socket, id, type, dest, sender):
         msg = create_msg(id, type, sender[1], sender[0])
