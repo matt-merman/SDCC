@@ -39,7 +39,7 @@ class Bully(Algorithm):
         for node in range(len(self.nodes) - 1):
             dest = (self.nodes[node]["ip"], self.nodes[node]["port"])
             Algorithm.forwarding(
-                self, self.socket, self.id, Type['COORDINATOR'].value, dest, (self.ip, self.port))
+                self, self.socket, self.id, Type['END_ELECT'].value, dest, (self.ip, self.port))
 
     def waiting(self):
 
@@ -48,7 +48,7 @@ class Bully(Algorithm):
             try:
                 data, addr = self.socket.recvfrom(BUFF_SIZE)
                 data = eval(data.decode('utf-8'))
-                if data["type"] == Type['COORDINATOR'].value:
+                if data["type"] == Type['END_ELECT'].value:
                     self.coordinator = data["id"]
 
                 if self.verbose:
@@ -89,6 +89,15 @@ class Bully(Algorithm):
             self.coordinator = self.id
             print("End election (new coord: {})\n".format(self.coordinator))
 
+    def election_msg(self, address):
+        id = get_id(address[1], self.nodes)
+        if id < self.id:
+            Algorithm.forwarding(
+                self, self.socket, self.id, Type['END_ELECT'].value, address, (self.ip, self.port))
+            if self.participant == False:
+                self.participant = True
+                self.start_election()
+
     def listening(self):
 
         while True:
@@ -101,15 +110,9 @@ class Bully(Algorithm):
                     self.ip, self.port, self.id, address[0], address[1], data))
 
             if data["type"] == Type['ELECTION'].value:
-                id = get_id(address[1], self.nodes)
-                if id < self.id:
-                    Algorithm.forwarding(
-                        self, self.socket, self.id, Type['STOP'].value, address, (self.ip, self.port))
-                    if self.participant == False:
-                        self.participant = True
-                        self.start_election()
+                self.election_msg(address)
 
-            if data["type"] == Type['STOP'].value:
+            if data["type"] == Type['END_ELECT'].value:
                 self.ack_nodes = []
                 self.participant = False
                 self.coordinator = data["id"]

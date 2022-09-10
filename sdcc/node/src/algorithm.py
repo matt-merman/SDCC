@@ -8,10 +8,9 @@ from .constants import *
 
 class Type(Enum):
     ELECTION = 0
-    COORDINATOR = 2
-    ACK = 3
-    STOP = 4
-    HEARTBEAT = 5
+    END_ELECT = 1
+    ACK = 2
+    HEARTBEAT = 3
 
 
 class Algorithm():
@@ -34,23 +33,26 @@ class Algorithm():
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
         address = (self.ip, 0)
         s.bind(address)
-        address = self.socket.getsockname()
+        address = s.getsockname()
 
         while True:
 
             time.sleep(HEARTBEAT_TIME)
-            if self.coordinator == self.id:
+
+            if self.participant or (self.coordinator == self.id):
                 continue
 
             if self.verbose:
                 self.logging.debug("Node: (ip:{} port:{} id:{})\nStarts Heartbeat\n".format(
-                    self.ip, self.port, self.id))
+                    address[0], address[1], self.id))
 
             index = get_index(self.coordinator, self.nodes)
             info = self.nodes[index]
             dest = (info["ip"], info["port"])
+
             self.forwarding(
                 s, self.id, Type['HEARTBEAT'].value, dest, (address[0], address[1]))
+
             s.settimeout(TOTAL_DELAY)
 
             try:
@@ -59,7 +61,7 @@ class Algorithm():
                 if data["type"] == Type["ACK"].value:
                     if self.verbose:
                         self.logging.debug("Node: (ip:{} port:{} id:{})\nEnds Heartbeat\n".format(
-                            self.ip, self.port, self.id))
+                            address[0], address[1], self.id))
                     continue
                 else:
                     print("Wrong packet received\n")
