@@ -21,7 +21,7 @@ class Ring(Algorithm):
         dest = get_dest(self.fail, self.id, self.nodes)
 
         Algorithm.forwarding(
-            self, self.socket, self.id, Type['ELECTION'].value, dest, (self.ip, self.port))
+            self, self.id, Type['ELECTION'].value, dest)
 
     def end_election(self, data):
         if self.coordinator != self.id:
@@ -29,7 +29,7 @@ class Ring(Algorithm):
             self.coordinator = data["id"]
             dest = get_dest(self.fail, self.id, self.nodes)
             Algorithm.forwarding(
-                self, self.socket, data["id"], Type['END_ELECT'].value, dest, (self.ip, self.id))
+                self, data["id"], Type['END_ELECT'].value, dest)
 
     def election_msg(self, data):
 
@@ -52,8 +52,8 @@ class Ring(Algorithm):
                     self.ip, self.port, self.id))
 
             Algorithm.forwarding(
-                self, self.socket, data["id"], Type['END_ELECT'].value, dest, (self.ip, self.id))
+                self, data["id"], Type['END_ELECT'].value, dest)
             return
 
         Algorithm.forwarding(
-            self, self.socket, data["id"], Type['ELECTION'].value, dest, (self.ip, self.id))
+            self, data["id"], Type['ELECTION'].value, dest)

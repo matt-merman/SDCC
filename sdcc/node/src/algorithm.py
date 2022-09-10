@@ -30,8 +30,7 @@ class Algorithm(ABC):
         self.logging = set_logging()
         self.participant = False
 
-        # variable only for ring-based alg.
-        self.number_crash = 1
+        self.number_crashes = 1
 
         thread = Thread(target=self.listening)
         thread.start()
@@ -63,7 +62,7 @@ class Algorithm(ABC):
 
             if data["type"] == Type['HEARTBEAT'].value:
                 Algorithm.forwarding(
-                    self, self.socket, self.id, Type['ACK'].value, address, (self.ip, self.port))
+                    self, self.id, Type['ACK'].value, address)
                 continue
 
             type = {Type['ELECTION'].value: self.election_msg,
@@ -74,7 +73,9 @@ class Algorithm(ABC):
 
     def crash(self, socket):
         socket.settimeout(None)
-        self.number_crash += 1
+        self.number_crashes += 1
+        # remove the last node (a.k.a coordinator)
+        self.nodes.pop()
         self.start_election()
 
     def heartbeat(self):
@@ -99,8 +100,9 @@ class Algorithm(ABC):
             info = self.nodes[index]
             dest = (info["ip"], info["port"])
 
-            self.forwarding(
-                s, self.id, Type['HEARTBEAT'].value, dest, (address[0], address[1]))
+            msg = create_msg(
+                self.id, Type['HEARTBEAT'].value, address[1], address[0])
+            s.sendto(msg, dest)
 
             s.settimeout(TOTAL_DELAY)
 
@@ -118,6 +120,6 @@ class Algorithm(ABC):
             except socket.timeout:
                 self.crash(s)
 
-    def forwarding(self, socket, id, type, dest, sender):
-        msg = create_msg(id, type, sender[1], sender[0])
-        socket.sendto(msg, dest)
+    def forwarding(self, id, type, dest):
+        msg = create_msg(id, type, self.port, self.ip)
+        self.socket.sendto(msg, dest)
