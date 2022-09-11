@@ -30,8 +30,6 @@ class Algorithm(ABC):
         self.logging = set_logging()
         self.participant = False
 
-        self.number_crashes = 1
-
         thread = Thread(target=self.listening)
         thread.start()
         self.start_election()
@@ -73,7 +71,6 @@ class Algorithm(ABC):
 
     def crash(self, socket):
         socket.settimeout(None)
-        self.number_crashes += 1
         # remove the last node (a.k.a coordinator)
         self.nodes.pop()
         self.start_election()

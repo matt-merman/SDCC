@@ -27,7 +27,6 @@ class Bully(Algorithm):
                 ip = self.nodes[node]["ip"]
                 port = self.nodes[node]["port"]
                 dest = (ip, port)
-
                 Algorithm.forwarding(
                     self, self.id, Type['ELECTION'].value, dest)
 
@@ -51,27 +50,28 @@ class Bully(Algorithm):
                 self.ip, self.id, self.id))
 
         for node in range(len(self.nodes) - 1):
-            dest = (self.nodes[node]["ip"], self.nodes[node]["port"])
+            ip = self.nodes[node]["ip"]
+            port = self.nodes[node]["port"]
+            dest = (ip, port)
             Algorithm.forwarding(
                 self, self.id, Type['END_ELECT'].value, dest)
 
-    def end_election(self, data):
-        id = data["id"]
-        self.participant = False
+    def end_election(self, msg):
+        id = msg["id"]
         if id < self.coordinator:
             Algorithm.forwarding(
-                self, self.coordinator, Type['END_ELECT'].value, (data["ip"], data["port"]))
+                self, self.coordinator, Type['END_ELECT'].value, (msg["ip"], msg["port"]))
             self.checked_nodes -= 1
             return
 
         self.checked_nodes = 0
-        self.coordinator = data["id"]
+        self.coordinator = msg["id"]
         print("End election (new coord: {})\n".format(self.coordinator))
 
-    def election_msg(self, data):
-        id = get_id(data["port"], self.nodes)
+    def election_msg(self, msg):
+        id = get_id(msg["port"], self.nodes)
         if id < self.id:
-            Algorithm.forwarding(
-                self, self.id, Type['END_ELECT'].value, (data["ip"], data["port"]))
+            dest = (msg["ip"], msg["port"])
+            Algorithm.forwarding(self, self.id, Type['END_ELECT'].value, dest)
             if self.participant == False:
                 self.start_election()

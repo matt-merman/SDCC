@@ -17,14 +17,10 @@ def get_id(port, list):
     return 0
 
 
-def get_dest(crash, id, list):
+def get_dest(id, list):
     index = get_index(id, list) + 1
-    if crash:
-        index += 1
-
-    if (index >= len(list)):
+    if index >= len(list):
         index = 0
-
     info = list[index]
     return (info["ip"], info["port"])
 

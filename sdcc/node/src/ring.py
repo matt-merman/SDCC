@@ -5,7 +5,6 @@ class Ring(Algorithm):
 
     def __init__(self, ip, port, id, nodes, socket, verbose):
 
-        self.fail = False
         Algorithm.__init__(self, ip, port, id, nodes, socket, verbose)
 
     def start_election(self):
@@ -13,38 +12,27 @@ class Ring(Algorithm):
             self.logging.debug("Node: (ip:{} port:{} id:{})\nStarts election\n".format(
                 self.ip, self.port, self.id))
 
+        # current node does not know if is the one with the greatest id
+        # as difference in Bully alg.
+        dest = get_dest(self.id, self.nodes)
         self.participant = True
-
-        id = self.nodes[len(self.nodes) - self.number_crash]["id"]
-        if (self.id == id) and (self.number_crash > 1):
-            self.fail = True
-        dest = get_dest(self.fail, self.id, self.nodes)
-
-        Algorithm.forwarding(
-            self, self.id, Type['ELECTION'].value, dest)
+        Algorithm.forwarding(self, self.id, Type['ELECTION'].value, dest)
 
     def end_election(self, data):
-        if self.coordinator != self.id:
-            self.participant = False
-            self.coordinator = data["id"]
-            dest = get_dest(self.fail, self.id, self.nodes)
-            Algorithm.forwarding(
-                self, data["id"], Type['END_ELECT'].value, dest)
+        if self.coordinator == self.id:
+            return
+        self.participant = False
+        self.coordinator = data["id"]
+
+        dest = get_dest(self.id, self.nodes)
+        Algorithm.forwarding(
+            self, data["id"], Type['END_ELECT'].value, dest)
 
     def election_msg(self, data):
 
-        id = data["id"]
-        dest = get_dest(self.fail, self.id, self.nodes)
-
-        if id < self.id:
-
-            if self.participant == False:
-                data["id"] = self.id
-                self.participant = True
-            else:
-                return
-
-        elif id == self.id:
+        current_id = data["id"]
+        dest = get_dest(self.id, self.nodes)
+        if current_id == self.id:
             self.participant = False
             self.coordinator = self.id
             if self.verbose:
@@ -52,8 +40,18 @@ class Ring(Algorithm):
                     self.ip, self.port, self.id))
 
             Algorithm.forwarding(
-                self, data["id"], Type['END_ELECT'].value, dest)
+                self, current_id, Type['END_ELECT'].value, dest)
             return
 
-        Algorithm.forwarding(
-            self, data["id"], Type['ELECTION'].value, dest)
+        elif current_id < self.id:
+
+            if self.participant == False:
+                self.participant = True
+                current_id = self.id
+                Algorithm.forwarding(
+                    self, current_id, Type['ELECTION'].value, dest)
+
+        elif current_id > self.id:
+            self.participant = True
+            Algorithm.forwarding(
+                self, current_id, Type['ELECTION'].value, dest)
