@@ -5,7 +5,7 @@ from random import randint
 import json
 
 from .constants import *
-from .verbose import *
+from .helpers import *
 
 
 class Register:
@@ -17,6 +17,7 @@ class Register:
         self.socket = None
         self.verbose = verbose
         self.logging = set_logging()
+        self.ip = None
         self.start()
 
     def receive(self):
@@ -37,24 +38,21 @@ class Register:
 
     def start(self):
 
+        with open("./config.json", "r") as config_file:
+            config = json.load(config_file)
+
+        port = config["register"]["port"]
+        self.ip = config["register"]["ip"]
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        server_address = ('localhost', 0)
+        server_address = (self.ip, port)
         self.socket.bind(server_address)
         info = self.socket.getsockname()
-        self.update_conf(info[1])
 
         if self.verbose:
             self.logging.debug("Register: (ip:{} port:{})\n".format(
                 info[0], info[1]))
 
-        thread = Thread(target=self.receive)
-        thread.start()
-
-        # in listening for a while
-        timeout = time.time() + RECEPTION_WINDOW
-        while time.time() < timeout:
-            continue
-
+        self.receive()
         self.send()
 
     def send(self):
@@ -62,7 +60,7 @@ class Register:
         self.log.sort(key=lambda x: x["id"])
 
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        server_address = ('localhost', 0)
+        server_address = (self.ip, 0)
         s.bind(server_address)
 
         info = s.getsockname()
@@ -76,14 +74,6 @@ class Register:
 
         if self.verbose:
             self.logging.debug("Register: (ip:{} port:{}))\nmessage: {}\n".format(
-                info[0], info[1], data))
+                info[0], info[1], str(self.log).encode('utf-8')))
 
         s.close()
-
-    def update_conf(self, port):
-        with open("../config.json", "r+") as jsonFile:
-            data = json.load(jsonFile)
-            data["register"]["port"] = port
-            jsonFile.seek(0)  # rewind
-            json.dump(data, jsonFile)
-            jsonFile.truncate()

@@ -1,8 +1,8 @@
 import socket
 import json
 
-from .verbose import *
 from .ring import *
+from .helpers import set_logging
 from .bully import *
 
 
@@ -10,7 +10,7 @@ class Node:
 
     def __init__(self, verbose, algorithm):
 
-        with open("../config.json", "r") as config_file:
+        with open("./config.json", "r") as config_file:
             config = json.load(config_file)
 
         self.port_register = config["register"]["port"]
@@ -45,7 +45,7 @@ class Node:
             self.logging.debug("Node: (ip:{} port:{} id:{})\nSender: (ip:{} port:{})\nMessage: {}\n".format(
                 self.ip, self.port, id, address[0], address[1], data))
 
-        if self.algorithm:
-            Bully(self.ip, self.port, id, data, s, self.verbose)
-        else:
-            Ring(self.ip, self.port, id, data, s, self.verbose)
+        # if self.algorithm:
+        #     Bully(self.ip, self.port, id, data, s, self.verbose)
+        # else:
+        #     Ring(self.ip, self.port, id, data, s, self.verbose)

@@ -1,0 +1,6 @@
+{
+    "register": {
+        "ip": "localhost",
+        "port": 1234
+    }
+}

@@ -1,7 +1,6 @@
 from enum import Enum
 import socket
 import time
-from .verbose import *
 from .helpers import *
 from .constants import *
 from abc import ABC, abstractmethod

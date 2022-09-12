@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  register:
+    build:
+      context: .
+      dockerfile: register/Dockerfile
+    network_mode: "host"  
+    # ports:
+    #   - "12345:1234"
+  node:
+    build: 
+      context: .
+      dockerfile: node/Dockerfile
+    network_mode: "host"  
+    # ports:
+    #   - "54321:4321"
