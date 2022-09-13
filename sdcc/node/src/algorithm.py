@@ -1,13 +1,13 @@
 from enum import Enum
 import socket
 import time
-import signal
+import signal as sign
 import readchar
 import sys
 from . import helpers as help
 from .constants import TOTAL_DELAY, BUFF_SIZE, HEARTBEAT_TIME
 from abc import ABC, abstractmethod
-from threading import Thread
+from threading import Thread, Lock
 
 
 class Type(Enum):
@@ -29,8 +29,9 @@ class Algorithm(ABC):
         self.nodes = nodes
         self.socket = socket
         self.coordinator = -1
+        self.lock = Lock()
 
-        signal.signal(signal.SIGINT, self.handler)
+        sign.signal(sign.SIGINT, self.handler)
 
         self.logging = help.set_logging()
         self.participant = False
@@ -72,6 +73,10 @@ class Algorithm(ABC):
             if data["type"] == Type['HEARTBEAT'].value:
                 msg = help.create_msg(
                     self.id, Type['ACK'].value, self.port, self.ip)
+                if self.verbose:
+                    help.print_log_tx(self.logging, addr,
+                                      (self.ip, self.port), self.id, eval(msg.decode('utf-8')))
+
                 self.socket.sendto(msg, addr)
                 continue
 
@@ -85,6 +90,7 @@ class Algorithm(ABC):
         socket.settimeout(None)
         # remove the last node (a.k.a coordinator)
         self.nodes.pop()
+        self.lock.release()
         self.start_election()
 
     def heartbeat(self):
@@ -98,7 +104,9 @@ class Algorithm(ABC):
 
             time.sleep(HEARTBEAT_TIME)
 
+            self.lock.acquire()
             if self.participant or (self.coordinator == self.id):
+                self.lock.release()
                 continue
 
             index = help.get_index(self.coordinator, self.nodes)
@@ -115,10 +123,15 @@ class Algorithm(ABC):
             s.sendto(msg, dest)
             s.settimeout(TOTAL_DELAY)
             try:
-                data, _ = s.recvfrom(BUFF_SIZE)
+                data, addr = s.recvfrom(BUFF_SIZE)
                 data = eval(data.decode('utf-8'))
+                if self.verbose:
+                    help.print_log_rx(self.logging, dest, addr, self.id, data)
+
                 if data["type"] != Type["ACK"].value:
                     self.crash(s)
+                else:
+                    self.lock.release()
 
             except socket.timeout:
                 self.crash(s)

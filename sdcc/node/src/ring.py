@@ -12,31 +12,51 @@ class Ring(Algorithm):
 
         # current node does not know if is the one with the greatest id
         # as difference in Bully alg.
+        self.lock.acquire()
         self.participant = True
         self.forwarding(self.id, Type['ELECTION'])
+        self.lock.release()
 
     def end_election(self, data):
-        if self.coordinator != self.id:
-            self.participant = False
-            self.coordinator = data["id"]
-            self.forwarding(data["id"], Type['END_ELECT'])
+        self.lock.acquire()
+        if self.coordinator == self.id:
+            return
+
+        self.participant = False
+        self.coordinator = data["id"]
+        self.forwarding(data["id"], Type['END_ELECT'])
+        self.lock.release()
 
     def election_msg(self, data):
 
         current_id = data["id"]
+        self.lock.acquire()
         if current_id == self.id:
             self.participant = False
             self.coordinator = self.id
             self.forwarding(current_id, Type['END_ELECT'])
+            self.lock.release()
             return
 
         elif current_id < self.id:
 
             if self.participant == False:
+                self.participant = True
                 current_id = self.id
+                self.forwarding(
+                    current_id, Type['ELECTION'])
 
-        self.participant = True
-        self.forwarding(current_id, Type['ELECTION'])
+        elif current_id > self.id:
+            self.participant = True
+            self.forwarding(
+                current_id, Type['ELECTION'])
+
+        # elif current_id < self.id and self.participant == False:
+        #     current_id = self.id
+
+        # self.participant = True
+        # self.forwarding(current_id, Type['ELECTION'])
+        # self.lock.release()
 
     def forwarding(self, id, type):
         index = help.get_index(self.id, self.nodes) + 1

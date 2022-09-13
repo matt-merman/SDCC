@@ -13,9 +13,9 @@ class Bully(Algorithm):
 
     def start_election(self):
 
-        self.participant = True
+        #self.participant = True
         index = help.get_index(self.id, self.nodes) + 1
-
+        self.lock.acquire()
         # if current node is not the one with the greatest id
         if index != len(self.nodes):
 
@@ -32,6 +32,7 @@ class Bully(Algorithm):
                 # ACK pkt = END pkt
                 if self.checked_nodes != ack_nodes:
                     self.participant = False
+                    self.lock.release()
                     return
 
         # case in which the current node does not receive acks
@@ -41,21 +42,28 @@ class Bully(Algorithm):
         for node in range(len(self.nodes) - 1):
             self.forwarding(self.nodes[node], self.id, Type['END_ELECT'])
 
+        self.lock.release()
+
     def end_election(self, msg):
         id = msg["id"]
+        self.lock.acquire()
         if id < self.coordinator:
             self.forwarding(msg, self.coordinator, Type['END_ELECT'])
             self.checked_nodes -= 1
+            self.lock.release()
             return
 
         self.checked_nodes = 0
         self.coordinator = msg["id"]
+        self.lock.release()
 
     def election_msg(self, msg):
         id = help.get_id(msg["port"], self.nodes)
         if id < self.id:
             self.forwarding(msg, self.id, Type['END_ELECT'])
+            self.lock.acquire()
             if self.participant == False:
+                self.lock.release()
                 self.start_election()
 
     def forwarding(self, node, id, type):
