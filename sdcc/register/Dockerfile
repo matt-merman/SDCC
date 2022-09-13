@@ -1,7 +1,7 @@
-# to build the image: 
-#   sudo docker build -t register-image .
-# to execute an instance:
-#   sudo docker run register-image
+# sudo docker build -t register-image .  
+# sudo docker run --net host register-image
+# or in sdcc/
+#   sudo docker-compose up
 # to delete all containers:
 #   sudo systemctl restart docker.service
 #   reboot

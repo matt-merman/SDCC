@@ -1,4 +1,7 @@
-from .algorithm import *
+from . import helpers as help
+from .algorithm import Algorithm, Type
+from .constants import TOTAL_DELAY
+import time
 
 
 class Bully(Algorithm):
@@ -9,12 +12,9 @@ class Bully(Algorithm):
         Algorithm.__init__(self, ip, port, id, nodes, socket, verbose)
 
     def start_election(self):
-        if self.verbose:
-            self.logging.debug("Node: (ip:{} port:{} id:{}))\nStarts Election\n".format(
-                self.ip, self.port, self.id))
 
         self.participant = True
-        index = get_index(self.id, self.nodes) + 1
+        index = help.get_index(self.id, self.nodes) + 1
 
         # if current node is not the one with the greatest id
         if index != len(self.nodes):
@@ -24,11 +24,7 @@ class Bully(Algorithm):
             ack_nodes = self.checked_nodes
 
             for node in range(index, len(self.nodes)):
-                ip = self.nodes[node]["ip"]
-                port = self.nodes[node]["port"]
-                dest = (ip, port)
-                Algorithm.forwarding(
-                    self, self.id, Type['ELECTION'].value, dest)
+                self.forwarding(self.nodes[node], self.id, Type['ELECTION'])
 
             timeout = time.time() + TOTAL_DELAY
             while (time.time() < timeout):
@@ -41,37 +37,33 @@ class Bully(Algorithm):
         # case in which the current node does not receive acks
         self.coordinator = self.id
         self.participant = False
-        self.announce_election()
-
-    def announce_election(self):
-
-        if self.verbose:
-            self.logging.debug("Node: (ip:{} port:{} id:{}))\nSend Election messages\n".format(
-                self.ip, self.id, self.id))
-
+        # announce the node election
         for node in range(len(self.nodes) - 1):
-            ip = self.nodes[node]["ip"]
-            port = self.nodes[node]["port"]
-            dest = (ip, port)
-            Algorithm.forwarding(
-                self, self.id, Type['END_ELECT'].value, dest)
+            self.forwarding(self.nodes[node], self.id, Type['END_ELECT'])
 
     def end_election(self, msg):
         id = msg["id"]
         if id < self.coordinator:
-            Algorithm.forwarding(
-                self, self.coordinator, Type['END_ELECT'].value, (msg["ip"], msg["port"]))
+            self.forwarding(msg, self.coordinator, Type['END_ELECT'])
             self.checked_nodes -= 1
             return
 
         self.checked_nodes = 0
         self.coordinator = msg["id"]
-        print("End election (new coord: {})\n".format(self.coordinator))
 
     def election_msg(self, msg):
-        id = get_id(msg["port"], self.nodes)
+        id = help.get_id(msg["port"], self.nodes)
         if id < self.id:
-            dest = (msg["ip"], msg["port"])
-            Algorithm.forwarding(self, self.id, Type['END_ELECT'].value, dest)
+            self.forwarding(msg, self.id, Type['END_ELECT'])
             if self.participant == False:
                 self.start_election()
+
+    def forwarding(self, node, id, type):
+        ip = node["ip"]
+        port = node["port"]
+        dest = (ip, port)
+        msg = help.create_msg(id, type.value, self.port, self.ip)
+        if self.verbose:
+            help.print_log_tx(self.logging, dest, (self.ip, self.port),
+                              self.id, eval(msg.decode('utf-8')))
+        self.socket.sendto(msg, dest)

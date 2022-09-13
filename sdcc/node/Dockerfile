@@ -1,7 +1,5 @@
-# to build the image: 
-#   sudo docker build -t node-image .
-# to execute an instance:
-#   sudo docker run -it node-image
+# sudo docker build -t node-image .  
+# sudo docker run --net host node-image
 # or in sdcc/
 #   sudo docker-compose up
 

@@ -1,4 +1,4 @@
-from src.main import *
+from src.main import Register
 import argparse
 
 
@@ -16,7 +16,9 @@ def run():
     if args.verbose:
         verbose = True
 
-    Register(verbose)
+    register = Register(verbose)
+    register.receive()
+    register.send()
 
 
 if __name__ == '__main__':

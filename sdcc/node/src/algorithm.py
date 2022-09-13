@@ -1,10 +1,13 @@
 from enum import Enum
 import socket
 import time
-from .helpers import *
-from .constants import *
+import signal
+import readchar
+import sys
+from . import helpers as help
+from .constants import TOTAL_DELAY, BUFF_SIZE, HEARTBEAT_TIME
 from abc import ABC, abstractmethod
-from threading import *
+from threading import Thread
 
 
 class Type(Enum):
@@ -12,6 +15,7 @@ class Type(Enum):
     END_ELECT = 1
     ACK = 2
     HEARTBEAT = 3
+    REGISTER = 4
 
 
 class Algorithm(ABC):
@@ -26,11 +30,15 @@ class Algorithm(ABC):
         self.socket = socket
         self.coordinator = -1
 
-        self.logging = set_logging()
+        signal.signal(signal.SIGINT, self.handler)
+
+        self.logging = help.set_logging()
         self.participant = False
 
         thread = Thread(target=self.listening)
+        thread.daemon = True
         thread.start()
+
         self.start_election()
         Algorithm.heartbeat(self)
 
@@ -46,20 +54,25 @@ class Algorithm(ABC):
     def election_msg(self):
         pass
 
+    @abstractmethod
+    def forwarding(self):
+        pass
+
     def listening(self):
 
         while True:
 
-            data, address = self.socket.recvfrom(BUFF_SIZE)
+            data, addr = self.socket.recvfrom(BUFF_SIZE)
             data = eval(data.decode('utf-8'))
 
             if self.verbose:
-                self.logging.debug("Node: (ip:{} port:{} id:{})\nSender: (ip:{} port:{})\nMessage: {}\n".format(
-                    self.ip, self.port, self.id, address[0], address[1], data))
+                help.print_log_rx(self.logging, (self.ip, self.port),
+                                  addr, self.id, data)
 
             if data["type"] == Type['HEARTBEAT'].value:
-                Algorithm.forwarding(
-                    self, self.id, Type['ACK'].value, address)
+                msg = help.create_msg(
+                    self.id, Type['ACK'].value, self.port, self.ip)
+                self.socket.sendto(msg, addr)
                 continue
 
             type = {Type['ELECTION'].value: self.election_msg,
@@ -88,34 +101,36 @@ class Algorithm(ABC):
             if self.participant or (self.coordinator == self.id):
                 continue
 
-            if self.verbose:
-                self.logging.debug("Node: (ip:{} port:{} id:{})\nStarts Heartbeat\n".format(
-                    address[0], address[1], self.id))
-
-            index = get_index(self.coordinator, self.nodes)
+            index = help.get_index(self.coordinator, self.nodes)
             info = self.nodes[index]
             dest = (info["ip"], info["port"])
 
-            msg = create_msg(
+            msg = help.create_msg(
                 self.id, Type['HEARTBEAT'].value, address[1], address[0])
+
+            if self.verbose:
+                help.print_log_tx(self.logging, dest,
+                                  (self.ip, self.port), self.id, eval(msg.decode('utf-8')))
+
             s.sendto(msg, dest)
-
             s.settimeout(TOTAL_DELAY)
-
             try:
                 data, _ = s.recvfrom(BUFF_SIZE)
                 data = eval(data.decode('utf-8'))
-                if data["type"] == Type["ACK"].value:
-                    if self.verbose:
-                        self.logging.debug("Node: (ip:{} port:{} id:{})\nEnds Heartbeat\n".format(
-                            address[0], address[1], self.id))
-                    continue
-                else:
+                if data["type"] != Type["ACK"].value:
                     self.crash(s)
 
             except socket.timeout:
                 self.crash(s)
 
-    def forwarding(self, id, type, dest):
-        msg = create_msg(id, type, self.port, self.ip)
-        self.socket.sendto(msg, dest)
+    def handler(self, signum, frame):
+        msg = " (Ctrl-c was pressed. Do you really want to exit? y/n) "
+        print(msg, end="", flush=True)
+        res = readchar.readchar()
+        if res == 'y':
+            print("")
+            sys.exit(1)
+        else:
+            print("", end="\r", flush=True)
+            print(" " * len(msg), end="", flush=True)  # clear the printed line
+            print("    ", end="\r", flush=True)

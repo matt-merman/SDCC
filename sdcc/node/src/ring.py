@@ -1,4 +1,5 @@
-from .algorithm import *
+from . import helpers as help
+from .algorithm import Algorithm, Type
 
 
 class Ring(Algorithm):
@@ -8,50 +9,42 @@ class Ring(Algorithm):
         Algorithm.__init__(self, ip, port, id, nodes, socket, verbose)
 
     def start_election(self):
-        if self.verbose:
-            self.logging.debug("Node: (ip:{} port:{} id:{})\nStarts election\n".format(
-                self.ip, self.port, self.id))
 
         # current node does not know if is the one with the greatest id
         # as difference in Bully alg.
-        dest = get_dest(self.id, self.nodes)
         self.participant = True
-        Algorithm.forwarding(self, self.id, Type['ELECTION'].value, dest)
+        self.forwarding(self.id, Type['ELECTION'])
 
     def end_election(self, data):
-        if self.coordinator == self.id:
-            return
-        self.participant = False
-        self.coordinator = data["id"]
-
-        dest = get_dest(self.id, self.nodes)
-        Algorithm.forwarding(
-            self, data["id"], Type['END_ELECT'].value, dest)
+        if self.coordinator != self.id:
+            self.participant = False
+            self.coordinator = data["id"]
+            self.forwarding(data["id"], Type['END_ELECT'])
 
     def election_msg(self, data):
 
         current_id = data["id"]
-        dest = get_dest(self.id, self.nodes)
         if current_id == self.id:
             self.participant = False
             self.coordinator = self.id
-            if self.verbose:
-                self.logging.debug("Node: (ip:{} port:{} id:{})\nElected as Coordinator\n".format(
-                    self.ip, self.port, self.id))
-
-            Algorithm.forwarding(
-                self, current_id, Type['END_ELECT'].value, dest)
+            self.forwarding(current_id, Type['END_ELECT'])
             return
 
         elif current_id < self.id:
 
             if self.participant == False:
-                self.participant = True
                 current_id = self.id
-                Algorithm.forwarding(
-                    self, current_id, Type['ELECTION'].value, dest)
 
-        elif current_id > self.id:
-            self.participant = True
-            Algorithm.forwarding(
-                self, current_id, Type['ELECTION'].value, dest)
+        self.participant = True
+        self.forwarding(current_id, Type['ELECTION'])
+
+    def forwarding(self, id, type):
+        index = help.get_index(self.id, self.nodes) + 1
+        if index >= len(self.nodes):
+            index = 0
+        dest = (self.nodes[index]["ip"], self.nodes[index]["port"])
+        msg = help.create_msg(id, type.value, self.port, self.ip)
+        if self.verbose:
+            help.print_log_tx(self.logging, dest, (self.ip, self.port),
+                              self.id, eval(msg.decode('utf-8')))
+        self.socket.sendto(msg, dest)

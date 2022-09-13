@@ -1,9 +1,11 @@
 import socket
 import json
 
-from .ring import *
+from .ring import Ring, Type
 from .helpers import set_logging
-from .bully import *
+from .bully import Bully
+from .constants import BUFF_SIZE
+from .helpers import create_msg, get_id,  print_log_rx
 
 
 class Node:
@@ -21,12 +23,11 @@ class Node:
         self.algorithm = algorithm   # True for bully alg.
         self.verbose = verbose
         self.logging = set_logging()
-        self.initialize()
 
     # send node's info to register node using UDP
     # and wait for complete list of participates
 
-    def initialize(self):
+    def start(self):
 
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
         address = (self.ip, 0)
@@ -35,17 +36,23 @@ class Node:
         info = s.getsockname()
         self.port = info[1]
 
-        s.sendto("".encode('utf-8'), (self.ip_register, self.port_register))
+        if self.verbose:
+            self.logging.debug("[Node]: (ip:{} port:{})\n[Triggered]\n".format(
+                self.ip, self.port))
 
-        data, address = s.recvfrom(4096)
+        msg = create_msg(0, Type['REGISTER'].value, self.port, self.ip)
+        dest = (self.ip_register, self.port_register)
+        s.sendto(msg, dest)
+
+        data, addr = s.recvfrom(BUFF_SIZE)
         data = eval(data.decode('utf-8'))
         id = get_id(self.port, data)
 
         if self.verbose:
-            self.logging.debug("Node: (ip:{} port:{} id:{})\nSender: (ip:{} port:{})\nMessage: {}\n".format(
-                self.ip, self.port, id, address[0], address[1], data))
+            print_log_rx(self.logging, (self.ip, self.port),
+                         addr, id, data)
 
-        # if self.algorithm:
-        #     Bully(self.ip, self.port, id, data, s, self.verbose)
-        # else:
-        #     Ring(self.ip, self.port, id, data, s, self.verbose)
+        if self.algorithm:
+            Bully(self.ip, self.port, id, data, s, self.verbose)
+        else:
+            Ring(self.ip, self.port, id, data, s, self.verbose)

@@ -1,79 +1,64 @@
 import socket
-import time
-from threading import Thread
-from random import randint
 import json
-
-from .constants import *
-from .helpers import *
+from random import randint
+from . import constants as const
+from . import helpers as help
 
 
 class Register:
 
     def __init__(self, verbose):
 
-        self.address_nodes = []
-        self.log = []
+        with open("./config.json", "r") as config_file:
+            config = json.load(config_file)
+
+        self.port = config["register"]["port"]
+        self.ip = config["register"]["ip"]
+
+        self.nodes = []
         self.socket = None
         self.verbose = verbose
-        self.logging = set_logging()
-        self.ip = None
-        self.start()
+        self.logging = help.set_logging()
 
     def receive(self):
 
-        self.socket.settimeout(SOCKET_TIMEOUT)
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        server_address = (self.ip, self.port)
+        self.socket.bind(server_address)
+
+        if self.verbose:
+            self.logging.debug("[Register]: (ip:{} port:{})\n[Triggered]\n".format(
+                self.ip, self.port))
+
+        self.socket.settimeout(const.SOCKET_TIMEOUT)
         while True:
             try:
-                _, addr = self.socket.recvfrom(4096)
-                id = randint(MIN, MAX)
+                msg, addr = self.socket.recvfrom(const.BUFF_SIZE)
+                id = randint(const.MIN, const.MAX)
                 node = dict({'ip': addr[0], 'port': addr[1], 'id': id})
-                self.log.append(node)
-                self.address_nodes.append(addr)
+                self.nodes.append(node)
+                msg = eval(msg.decode('utf-8'))
+
+                if self.verbose:
+                    help.print_log_rx(self.logging, (self.ip, self.port),
+                                      addr, -1, msg)
 
             except socket.timeout:
                 break
 
-        self.socket.close()
-
-    def start(self):
-
-        with open("./config.json", "r") as config_file:
-            config = json.load(config_file)
-
-        port = config["register"]["port"]
-        self.ip = config["register"]["ip"]
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        server_address = (self.ip, port)
-        self.socket.bind(server_address)
-        info = self.socket.getsockname()
-
-        if self.verbose:
-            self.logging.debug("Register: (ip:{} port:{})\n".format(
-                info[0], info[1]))
-
-        self.receive()
-        self.send()
+        self.nodes.sort(key=lambda x: x["id"])
 
     def send(self):
 
-        self.log.sort(key=lambda x: x["id"])
+        data = str(self.nodes).encode('utf-8')
+        for node in range(len(self.nodes)):
 
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        server_address = (self.ip, 0)
-        s.bind(server_address)
+            ip = self.nodes[node]["ip"]
+            port = self.nodes[node]["port"]
+            id = self.nodes[node]["id"]
+            if self.verbose:
+                help.print_log_tx(self.logging, (ip, port),
+                                  (self.ip, self.port), id, self.nodes)
+            self.socket.sendto(data, (ip, port))
 
-        info = s.getsockname()
-
-        for node in range(len(self.address_nodes)):
-
-            addr = self.address_nodes[node][0]
-            port = self.address_nodes[node][1]
-            data = str(self.log).encode('utf-8')
-            s.sendto(data, (addr, port))
-
-        if self.verbose:
-            self.logging.debug("Register: (ip:{} port:{}))\nmessage: {}\n".format(
-                info[0], info[1], str(self.log).encode('utf-8')))
-
-        s.close()
+        self.socket.close()

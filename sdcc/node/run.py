@@ -1,4 +1,4 @@
-from src.main import *
+from src.main import Node
 import argparse
 
 
@@ -22,7 +22,8 @@ def run():
     if args.algorithm == "bully":
         algorithm = True
 
-    Node(verbose, algorithm)
+    node = Node(verbose, algorithm)
+    node.start()
 
 
 if __name__ == '__main__':
