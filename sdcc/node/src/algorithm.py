@@ -12,10 +12,11 @@ from threading import Thread, Lock
 
 class Type(Enum):
     ELECTION = 0
-    END_ELECT = 1
-    ACK = 2
+    END = 1
+    ANSWER = 2
     HEARTBEAT = 3
     REGISTER = 4
+    ACK = 5
 
 
 class Algorithm(ABC):
@@ -48,7 +49,11 @@ class Algorithm(ABC):
         pass
 
     @abstractmethod
-    def end_election(self):
+    def end_msg(self):
+        pass
+
+    @abstractmethod
+    def answer_msg(self):
         pass
 
     @abstractmethod
@@ -80,8 +85,13 @@ class Algorithm(ABC):
                 self.socket.sendto(msg, addr)
                 continue
 
+            elif data["type"] == Type['ANSWER'].value:
+                self.answer_msg()
+                continue
+
             type = {Type['ELECTION'].value: self.election_msg,
-                    Type['END_ELECT'].value: self.end_election
+                    Type['END'].value: self.end_msg
+
                     }
 
             type[data["type"]](data)
