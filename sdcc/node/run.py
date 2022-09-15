@@ -1,5 +1,7 @@
 from src.main import Node
 import argparse
+import pyfiglet
+import os
 
 
 def run():
@@ -14,6 +16,12 @@ def run():
     parser.add_argument("-a", "--algorithm", help="ring or bully")
 
     args = parser.parse_args()
+
+    os.system("clear")
+    intro = pyfiglet.figlet_format("NODE", font="slant")
+    print(intro)
+    print("(Info: https://github.com/matt-merman/sdcc)\n")
+
     verbose = False
     if args.verbose:
         verbose = True
@@ -22,7 +30,7 @@ def run():
     if args.algorithm == "bully":
         algorithm = True
 
-    node = Node(verbose, algorithm)
+    node = Node(verbose, algorithm, "./config.json")
     node.start()
 
 

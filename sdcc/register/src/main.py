@@ -7,9 +7,9 @@ from . import helpers as help
 
 class Register:
 
-    def __init__(self, verbose):
+    def __init__(self, verbose, config_path):
 
-        with open("./config.json", "r") as config_file:
+        with open(config_path, "r") as config_file:
             config = json.load(config_file)
 
         self.port = config["register"]["port"]
@@ -62,3 +62,6 @@ class Register:
             self.socket.sendto(data, (ip, port))
 
         self.socket.close()
+
+    def get_list(self):
+        return self.nodes

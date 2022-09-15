@@ -1,5 +1,6 @@
 from . import helpers as help
 from .algorithm import Algorithm, Type
+from . import verbose as verb
 import sys
 
 
@@ -72,6 +73,7 @@ class Ring(Algorithm):
         self.lock.release()
 
     def forwarding(self, id, type):
+
         index = help.get_index(self.id, self.nodes) + 1
         if index >= len(self.nodes):
             index = 0
@@ -81,7 +83,7 @@ class Ring(Algorithm):
         msg = help.create_msg(id, type.value, self.port, self.ip)
 
         if self.verbose:
-            help.print_log_tx(self.logging, dest, (self.ip, self.port),
+            verb.print_log_tx(self.logging, dest, (self.ip, self.port),
                               self.id, eval(msg.decode('utf-8')))
 
         self.socket.sendto(msg, dest)

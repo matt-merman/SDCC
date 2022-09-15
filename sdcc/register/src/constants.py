@@ -1,8 +1,6 @@
-from random import randint
-
 REGISTER = 4
 
-BUFF_SIZE = 500
-SOCKET_TIMEOUT = 10
+BUFF_SIZE = 512
+SOCKET_TIMEOUT = 5
 MAX = 1000
 MIN = 0

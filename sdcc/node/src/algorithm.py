@@ -2,12 +2,12 @@ from enum import Enum
 import socket
 import time
 import signal as sign
-import readchar
 import sys
 from . import helpers as help
 from .constants import TOTAL_DELAY, BUFF_SIZE, HEARTBEAT_TIME
 from abc import ABC, abstractmethod
 from threading import Thread, Lock
+from . import verbose as verb
 
 
 class Type(Enum):
@@ -34,7 +34,7 @@ class Algorithm(ABC):
 
         sign.signal(sign.SIGINT, self.handler)
 
-        self.logging = help.set_logging()
+        self.logging = verb.set_logging()
         self.participant = False
 
         thread = Thread(target=self.listening)
@@ -72,14 +72,14 @@ class Algorithm(ABC):
             data = eval(data.decode('utf-8'))
 
             if self.verbose:
-                help.print_log_rx(self.logging, (self.ip, self.port),
+                verb.print_log_rx(self.logging, (self.ip, self.port),
                                   addr, self.id, data)
 
             if data["type"] == Type['HEARTBEAT'].value:
                 msg = help.create_msg(
                     self.id, Type['ACK'].value, self.port, self.ip)
                 if self.verbose:
-                    help.print_log_tx(self.logging, addr,
+                    verb.print_log_tx(self.logging, addr,
                                       (self.ip, self.port), self.id, eval(msg.decode('utf-8')))
 
                 self.socket.sendto(msg, addr)
@@ -127,7 +127,7 @@ class Algorithm(ABC):
                 self.id, Type['HEARTBEAT'].value, address[1], address[0])
 
             if self.verbose:
-                help.print_log_tx(self.logging, dest,
+                verb.print_log_tx(self.logging, dest,
                                   (self.ip, self.port), self.id, eval(msg.decode('utf-8')))
 
             s.sendto(msg, dest)
@@ -136,7 +136,7 @@ class Algorithm(ABC):
                 data, addr = s.recvfrom(BUFF_SIZE)
                 data = eval(data.decode('utf-8'))
                 if self.verbose:
-                    help.print_log_rx(self.logging, dest, addr, self.id, data)
+                    verb.print_log_rx(self.logging, dest, addr, self.id, data)
 
                 if data["type"] != Type["ACK"].value:
                     self.crash(s)
@@ -147,13 +147,6 @@ class Algorithm(ABC):
                 self.crash(s)
 
     def handler(self, signum, frame):
-        msg = " (Ctrl-c was pressed. Do you really want to exit? y/n) "
-        print(msg, end="", flush=True)
-        res = readchar.readchar()
-        if res == 'y':
-            print("")
-            sys.exit(1)
-        else:
-            print("", end="\r", flush=True)
-            print(" " * len(msg), end="", flush=True)  # clear the printed line
-            print("    ", end="\r", flush=True)
+        self.logging.debug("[Node]: (ip:{} port:{} id:{})\nKilled\n".format(
+            self.ip, self.port, self.id))
+        sys.exit(1)

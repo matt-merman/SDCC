@@ -3,6 +3,7 @@ from .algorithm import Algorithm, Type
 from .constants import TOTAL_DELAY
 import time
 import sys
+from . import verbose as verb
 
 
 class Bully(Algorithm):
@@ -99,6 +100,6 @@ class Bully(Algorithm):
         dest = (ip, port)
         msg = help.create_msg(id, type.value, self.port, self.ip)
         if self.verbose:
-            help.print_log_tx(self.logging, dest, (self.ip, self.port),
+            verb.print_log_tx(self.logging, dest, (self.ip, self.port),
                               self.id, eval(msg.decode('utf-8')))
         self.socket.sendto(msg, dest)

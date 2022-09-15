@@ -2,17 +2,17 @@ import socket
 import json
 
 from .ring import Ring, Type
-from .helpers import set_logging
+from .verbose import *
 from .bully import Bully
 from .constants import BUFF_SIZE
-from .helpers import create_msg, get_id,  print_log_rx
+from .helpers import create_msg, get_id
 
 
 class Node:
 
-    def __init__(self, verbose, algorithm):
+    def __init__(self, verbose, algorithm, config_path):
 
-        with open("./config.json", "r") as config_file:
+        with open(config_path, "r") as config_file:
             config = json.load(config_file)
 
         self.port_register = config["register"]["port"]
