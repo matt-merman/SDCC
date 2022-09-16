@@ -1,7 +1,11 @@
+from random import randint
+
+from .constants import HEARTBEAT_TIME
 from . import helpers as help
 from .algorithm import Algorithm, Type
 from . import verbose as verb
 import sys
+import time
 
 
 class Ring(Algorithm):
@@ -19,10 +23,6 @@ class Ring(Algorithm):
     def __init__(self, ip, port, id, nodes, socket, verbose):
 
         Algorithm.__init__(self, ip, port, id, nodes, socket, verbose)
-
-    # useless method needed in the bully alg.
-    def answer_msg(self):
-        pass
 
     def start_election(self):
 
@@ -74,6 +74,9 @@ class Ring(Algorithm):
 
     def forwarding(self, id, type):
 
+        delay = randint(0, HEARTBEAT_TIME*2)
+        time.sleep(delay)
+
         index = help.get_index(self.id, self.nodes) + 1
         if index >= len(self.nodes):
             index = 0
@@ -87,3 +90,7 @@ class Ring(Algorithm):
                               self.id, eval(msg.decode('utf-8')))
 
         self.socket.sendto(msg, dest)
+
+   # useless method needed in the bully alg.
+    def answer_msg(self):
+        pass

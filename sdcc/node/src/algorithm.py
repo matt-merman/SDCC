@@ -8,6 +8,7 @@ from .constants import TOTAL_DELAY, BUFF_SIZE, HEARTBEAT_TIME
 from abc import ABC, abstractmethod
 from threading import Thread, Lock
 from . import verbose as verb
+from random import randint
 
 
 class Type(Enum):
@@ -76,6 +77,10 @@ class Algorithm(ABC):
                                   addr, self.id, data)
 
             if data["type"] == Type['HEARTBEAT'].value:
+
+                delay = randint(0, HEARTBEAT_TIME*2)
+                time.sleep(delay)
+
                 msg = help.create_msg(
                     self.id, Type['ACK'].value, self.port, self.ip)
                 if self.verbose:
@@ -89,12 +94,12 @@ class Algorithm(ABC):
                 self.answer_msg()
                 continue
 
-            type = {Type['ELECTION'].value: self.election_msg,
+            func = {Type['ELECTION'].value: self.election_msg,
                     Type['END'].value: self.end_msg
 
                     }
 
-            type[data["type"]](data)
+            func[data["type"]](data)
 
     def crash(self, socket):
         socket.settimeout(None)
@@ -131,20 +136,29 @@ class Algorithm(ABC):
                                   (self.ip, self.port), self.id, eval(msg.decode('utf-8')))
 
             s.sendto(msg, dest)
-            s.settimeout(TOTAL_DELAY)
-            try:
-                data, addr = s.recvfrom(BUFF_SIZE)
-                data = eval(data.decode('utf-8'))
-                if self.verbose:
-                    verb.print_log_rx(self.logging, dest, addr, self.id, data)
+            self.receive(s, dest, TOTAL_DELAY)
 
-                if data["type"] != Type["ACK"].value:
-                    self.crash(s)
-                else:
-                    self.lock.release()
+    def receive(self, sock, dest, waiting):
 
-            except socket.timeout:
-                self.crash(s)
+        start = round(time.time())
+        sock.settimeout(waiting)
+
+        try:
+            data, addr = sock.recvfrom(BUFF_SIZE)
+            data = eval(data.decode('utf-8'))
+            if self.verbose:
+                verb.print_log_rx(self.logging, dest, addr, self.id, data)
+
+            if data["id"] == self.coordinator and data["type"] == Type["ACK"].value:
+                self.lock.release()
+
+            else:
+                sock.settimeout(None)
+                stop = round(time.time())
+                self.receive(sock, dest, waiting - (stop-start))
+
+        except socket.timeout:
+            self.crash(sock)
 
     def handler(self, signum, frame):
         self.logging.debug("[Node]: (ip:{} port:{} id:{})\nKilled\n".format(

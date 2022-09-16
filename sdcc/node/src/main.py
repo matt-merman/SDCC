@@ -2,7 +2,7 @@ import socket
 import json
 
 from .ring import Ring, Type
-from .verbose import *
+from .verbose import set_logging, print_log_rx
 from .bully import Bully
 from .constants import BUFF_SIZE
 from .helpers import create_msg, get_id
@@ -29,7 +29,7 @@ class Node:
 
     def start(self):
 
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         address = (self.ip, 0)
         s.bind(address)
 
@@ -40,19 +40,19 @@ class Node:
             self.logging.debug("[Node]: (ip:{} port:{})\n[Triggered]\n".format(
                 self.ip, self.port))
 
-        msg = create_msg(0, Type['REGISTER'].value, self.port, self.ip)
+        msg = create_msg(-1, Type['REGISTER'].value, self.port, self.ip)
         dest = (self.ip_register, self.port_register)
         s.sendto(msg, dest)
 
-        data, addr = s.recvfrom(BUFF_SIZE)
-        data = eval(data.decode('utf-8'))
-        id = get_id(self.port, data)
+        msg, addr = s.recvfrom(BUFF_SIZE)
+        msg = eval(msg.decode('utf-8'))
+        identifier = get_id(self.port, msg)
 
         if self.verbose:
             print_log_rx(self.logging, (self.ip, self.port),
-                         addr, id, data)
+                         addr, identifier, msg)
 
         if self.algorithm:
-            Bully(self.ip, self.port, id, data, s, self.verbose)
+            Bully(self.ip, self.port, identifier, msg, s, self.verbose)
         else:
-            Ring(self.ip, self.port, id, data, s, self.verbose)
+            Ring(self.ip, self.port, identifier, msg, s, self.verbose)

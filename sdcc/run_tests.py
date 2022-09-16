@@ -3,6 +3,8 @@ import pyfiglet
 import tests as t
 import time
 
+INVALID_OUT = "Wrong Input!"
+
 
 def test_a(test):
     test.test_a()
@@ -21,7 +23,7 @@ def get_nodes():
         try:
             num = int(input("Insert nodes number\n"))
         except ValueError:
-            print("Wrong Input!")
+            print(INVALID_OUT)
             continue
         except KeyboardInterrupt:
             print()
@@ -48,14 +50,14 @@ def run():
             op = int(input(
                 "1. Node Failure\n2. Coordinator Failure\n3. Two nodes fail (include the Coordinator)\n4. Change Algorithm (Bully by default)\n5. Set Nodes (4 by default)\n6. Exit\n"))
         except ValueError:
-            print("Wrong Input!")
+            print(INVALID_OUT)
             continue
         except KeyboardInterrupt:
             print()
             return
 
         if op not in [1, 2, 3, 4, 5, 6]:
-            print("Wrong Input!")
+            print(INVALID_OUT)
             continue
 
         if op == 4:
@@ -81,6 +83,7 @@ def run():
         test = t.Tests(nodes, algorithm)
         time.sleep(t.HEARTBEAT_TIME*2)
         command[op](test)
+        return
 
 
 if __name__ == '__main__':

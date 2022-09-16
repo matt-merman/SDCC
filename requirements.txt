@@ -1,1 +1,2 @@
-readchar==4.0.3
+psutil==5.9.2
+pyfiglet==0.8.post1

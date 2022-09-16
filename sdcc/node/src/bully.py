@@ -1,8 +1,9 @@
 from . import helpers as help
 from .algorithm import Algorithm, Type
-from .constants import TOTAL_DELAY
+from .constants import TOTAL_DELAY, HEARTBEAT_TIME
 import time
 import sys
+from random import randint
 from . import verbose as verb
 
 
@@ -95,6 +96,10 @@ class Bully(Algorithm):
         self.lock.release()
 
     def forwarding(self, node, id, type):
+
+        delay = randint(0, HEARTBEAT_TIME*2)
+        time.sleep(delay)
+
         ip = node["ip"]
         port = node["port"]
         dest = (ip, port)

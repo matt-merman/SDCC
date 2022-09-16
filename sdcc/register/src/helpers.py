@@ -1,4 +1,14 @@
 import logging
+from random import randint
+from . import constants as const
+
+
+def generate(list):
+    identifier = randint(const.MIN, const.MAX)
+    if identifier not in list:
+        return identifier
+    else:
+        generate(list)
 
 
 def set_logging():

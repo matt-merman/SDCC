@@ -8,13 +8,14 @@ import time
 from multiprocessing import Process
 from node.src.constants import HEARTBEAT_TIME
 from random import randint
+from register.src.constants import SOCKET_TIMEOUT
 
 
 class Tests:
 
     """
     The following tests are executed:
-    - TEST A: a generic node fails 
+    - TEST A: a generic node fails
     - TEST B: coordinator fails
     - TEST C: both generic node and coordinator fail
     """
@@ -23,33 +24,79 @@ class Tests:
         self.num_nodes = n
         self.verbose = True
         self.nodes = []
-        self.logging = self.set_logging()
-        self.algorithm = algorithm
-        self.num_proc = 0
+
+        self.utils = Utils()
+        self.logging = self.utils.set_logging()
 
         thread_register = Thread(target=self.generate_register)
         thread_register.daemon = True
         thread_register.start()
 
+        time.sleep(SOCKET_TIMEOUT/2)
+
         for _ in range(self.num_nodes):
-            process = Process(target=self.generate_node)
+            process = Process(target=self.utils.generate_node,
+                              args=(self.verbose, algorithm, ))
             process.daemon = True
             process.start()
 
         thread_register.join()
 
-        self.logging.debug("Generated {} nodes\nMore Details {}\n".format(
-            self.num_nodes, self.nodes))
+        self.logging.debug("=========== Test ===========\n"
+                           "Generated {} nodes\nMore Details {}\n"
+                           "============================\n".format(
+                               self.num_nodes, self.nodes))
 
-    def generate_node(self):
-        node = Node(self.verbose, self.algorithm, "./node/config.json")
-        node.start()
+    def test_a(self):
+
+        index = randint(0, self.num_nodes - 2)
+        port = self.nodes[index]["port"]
+        self.utils.kill_node(port)
+
+        time.sleep(HEARTBEAT_TIME * 1)
+
+        self.utils.terminate(port, self.nodes)
+        self.logging.debug("====== Test A finished =====\n")
+
+    def test_b(self):
+
+        port = self.nodes[-1]["port"]
+        self.utils.kill_node(port)
+
+        time.sleep(HEARTBEAT_TIME * 1)
+
+        self.utils.terminate(port, self.nodes)
+        self.logging.debug("====== Test B finished =====\n")
+
+    def test_c(self):
+
+        port = self.nodes[-1]["port"]
+        self.utils.kill_node(port)
+
+        index = randint(0, self.num_nodes - 2)
+        port = self.nodes[index]["port"]
+        self.utils.kill_node(port)
+
+        time.sleep(HEARTBEAT_TIME * 1)
+
+        self.utils.terminate(port, self.nodes)
+        self.logging.debug("====== Test C finished =====\n")
 
     def generate_register(self):
         register = Register(self.verbose, "./register/config.json")
         register.receive()
-        self.nodes = register.get_list()
         register.send()
+        self.nodes = register.get_list()
+
+
+class Utils:
+
+    def __init__(self):
+        pass
+
+    def generate_node(self, verbose, algo):
+        node = Node(verbose, algo, "./node/config.json")
+        node.start()
 
     def kill_node(self, port):
         for proc in process_iter():
@@ -57,66 +104,14 @@ class Tests:
                 if conns.laddr.port == port:
                     proc.send_signal(SIGINT)
 
-    def test_a(self):
-
-        index = randint(0, self.num_nodes - 2)
-        port = self.nodes[index]["port"]
-        self.kill_node(port)
-
-        # keep running the application for a while
-        timeout = time.time() + HEARTBEAT_TIME*5
-        while time.time() < timeout:
-            continue
-
-        for index in range(self.num_nodes - 1):
-            p = self.nodes[index]["port"]
+    def terminate(self, port, nodes):
+        for index in range(len(nodes) - 1):
+            p = nodes[index]["port"]
             if p == port:
                 continue
             self.kill_node(p)
 
-        self.logging.debug("Test A finished\n")
-
-    def test_b(self):
-
-        port = self.nodes[-1]["port"]
-        self.kill_node(port)
-
-        # keep running the application for a while
-        timeout = time.time() + HEARTBEAT_TIME*5
-        while time.time() < timeout:
-            continue
-
-        for index in range(self.num_nodes - 1):
-            p = self.nodes[index]["port"]
-            if p == port:
-                continue
-            self.kill_node(p)
-
-        self.logging.debug("Test B finished\n")
-
-    def test_c(self):
-
-        port = self.nodes[-1]["port"]
-        self.kill_node(port)
-
-        index = randint(0, self.num_nodes - 2)
-        port = self.nodes[index]["port"]
-        self.kill_node(port)
-
-        # keep running the application for a while
-        timeout = time.time() + HEARTBEAT_TIME*5
-        while time.time() < timeout:
-            continue
-
-        for index in range(self.num_nodes - 2):
-            p = self.nodes[index]["port"]
-            if p == port:
-                continue
-            self.kill_node(p)
-
-        self.logging.debug("Test C finished\n")
-
-    def set_logging(self):
+    def set_logging(self) -> logging:
         logging.basicConfig(
             level=logging.DEBUG,
             format="[%(levelname)s] %(asctime)s\n%(message)s",
