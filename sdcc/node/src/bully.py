@@ -3,6 +3,7 @@ from .algorithm import Algorithm, Type
 from .constants import TOTAL_DELAY, HEARTBEAT_TIME
 import time
 import sys
+import socket
 from random import randint
 from . import verbose as verb
 
@@ -21,10 +22,10 @@ class Bully(Algorithm):
         - Answer -> Answer
     """
 
-    def __init__(self, ip, port, id, nodes, socket, verbose):
+    def __init__(self, ip: str, port: int, id: int, nodes: list, socket: socket, verbose: bool, delay: bool):
 
         self.checked_nodes = 0
-        Algorithm.__init__(self, ip, port, id, nodes, socket, verbose)
+        Algorithm.__init__(self, ip, port, id, nodes, socket, verbose, delay)
 
     def start_election(self):
 
@@ -80,12 +81,12 @@ class Bully(Algorithm):
         self.checked_nodes -= 1
         self.lock.release()
 
-    def end_msg(self, msg):
+    def end_msg(self, msg: dict):
         self.lock.acquire()
         self.coordinator = msg["id"]
         self.lock.release()
 
-    def election_msg(self, msg):
+    def election_msg(self, msg: dict):
         self.lock.acquire()
         self.forwarding(msg, self.id, Type['ANSWER'])
         if self.participant == False:
@@ -95,10 +96,11 @@ class Bully(Algorithm):
 
         self.lock.release()
 
-    def forwarding(self, node, id, type):
+    def forwarding(self, node: dict, id: int, type: Type):
 
-        delay = randint(0, HEARTBEAT_TIME*2)
-        time.sleep(delay)
+        if self.delay:
+            delay = randint(0, HEARTBEAT_TIME*2)
+            time.sleep(delay)
 
         ip = node["ip"]
         port = node["port"]

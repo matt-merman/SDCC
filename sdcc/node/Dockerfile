@@ -5,9 +5,10 @@
 
 # syntax=docker/dockerfile:1
 FROM node:12-alpine
-RUN apk add --no-cache python3
+RUN apk add --no-cache gcc musl-dev linux-headers python3 py3-pip python3-dev
 WORKDIR /node
-#EXPOSE 4321
-COPY . . 
-CMD ["python3", "run.py", "-v"]
+COPY . .
+RUN pip install -r requirements.txt
+#EXPOSE 65436/udp
+CMD ["python3", "./node/run.py", "-v"]
 

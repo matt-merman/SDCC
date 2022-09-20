@@ -1,17 +1,43 @@
+# sudo docker-compose build                                                                                                       1 ↵
+# sudo docker-compose up --no-recreate
+
+# sudo docker system prune -a
+
 version: "3.9"
 
+# networks:
+#   sdcc_net:
+#     driver: bridge
+#     ipam:
+#       config:
+#         - subnet: 172.16.240.0/24
+#           gateway: 172.16.240.1
+
 services:
+
   register:
-    build:
-      context: .
-      dockerfile: register/Dockerfile
-    network_mode: "host"  
-    # ports:
-    #   - "12345:1234"
-  node:
     build: 
-      context: .
-      dockerfile: node/Dockerfile
-    network_mode: "host"  
+      context: ./
+      dockerfile: register/Dockerfile
+    stop_signal: SIGTERM
+    network_mode: "host" 
+    
+    # networks:
+    #   sdcc_net:
+    #     ipv4_address: 172.16.240.10
     # ports:
-    #   - "54321:4321"
+    #   - "1234:1234/udp"
+  
+  node:
+    build:
+      context: ./
+      dockerfile: node/Dockerfile
+    stop_signal: SIGTERM
+    network_mode: "host" 
+    
+    # networks: 
+    #   sdcc_net:
+    #     ipv4_address: 172.16.240.18
+    # ports: 
+    #   - "65436:65436/udp"
+    

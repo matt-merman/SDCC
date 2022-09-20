@@ -1,7 +1,6 @@
 import os
 import pyfiglet
 import tests as t
-import time
 
 INVALID_OUT = "Wrong Input!"
 
@@ -41,6 +40,7 @@ def run():
     intro = pyfiglet.figlet_format("TEST", font="slant")
     print(intro)
     print("(Info: https://github.com/matt-merman/sdcc)\n")
+    print("(WARNING: Using a UDP connection may cause the packet loss)\n")
 
     algorithm = True  # i.e., Bully alg.
     nodes = 4
@@ -81,7 +81,6 @@ def run():
                    }
 
         test = t.Tests(nodes, algorithm)
-        time.sleep(t.HEARTBEAT_TIME*2)
         command[op](test)
         return
 

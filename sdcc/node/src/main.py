@@ -10,19 +10,19 @@ from .helpers import create_msg, get_id
 
 class Node:
 
-    def __init__(self, verbose, algorithm, config_path):
+    def __init__(self, verbose: bool, algorithm: bool, config_path: str, delay: bool):
 
         with open(config_path, "r") as config_file:
             config = json.load(config_file)
 
         self.port_register = config["register"]["port"]
         self.ip_register = config["register"]["ip"]
+        self.ip = config["node"]["ip"]
 
-        self.ip = "localhost"
-        self.port = None
         self.algorithm = algorithm   # True for bully alg.
         self.verbose = verbose
         self.logging = set_logging()
+        self.delay = delay
 
     # send node's info to register node using UDP
     # and wait for complete list of participates
@@ -53,6 +53,8 @@ class Node:
                          addr, identifier, msg)
 
         if self.algorithm:
-            Bully(self.ip, self.port, identifier, msg, s, self.verbose)
+            Bully(self.ip, self.port, identifier,
+                  msg, s, self.verbose, self.delay)
         else:
-            Ring(self.ip, self.port, identifier, msg, s, self.verbose)
+            Ring(self.ip, self.port, identifier,
+                 msg, s, self.verbose, self.delay)

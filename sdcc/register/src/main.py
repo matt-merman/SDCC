@@ -6,7 +6,7 @@ from . import helpers as help
 
 class Register:
 
-    def __init__(self, verbose, config_path):
+    def __init__(self, verbose: bool, config_path: str):
 
         with open(config_path, "r") as config_file:
             config = json.load(config_file)
@@ -38,6 +38,9 @@ class Register:
                 self.nodes.append(node)
                 msg = eval(msg.decode('utf-8'))
 
+                if msg["type"] != const.REGISTER:
+                    continue
+
                 if self.verbose:
                     help.print_log_rx(self.logging, (self.ip, self.port),
                                       addr, 0, msg)
@@ -62,5 +65,5 @@ class Register:
 
         self.socket.close()
 
-    def get_list(self):
+    def get_list(self) -> list:
         return self.nodes

@@ -1,16 +1,14 @@
-# sudo docker build -t register-image .  
-# sudo docker run --net host register-image
+# sudo docker build -t node-image .  
+# sudo docker run --net host node-image
 # or in sdcc/
 #   sudo docker-compose up
-# to delete all containers:
-#   sudo systemctl restart docker.service
-#   reboot
 
 # syntax=docker/dockerfile:1
 FROM node:12-alpine
-RUN apk add --no-cache python3
+RUN apk add --no-cache gcc musl-dev linux-headers python3 py3-pip python3-dev
 WORKDIR /register
-#EXPOSE 1234
-COPY . . 
-CMD ["python3", "run.py", "-v"]
+COPY . .
+RUN pip install -r requirements.txt
+# EXPOSE 1234/udp
+CMD ["python3", "./register/run.py", "-v"]
 

@@ -7,13 +7,15 @@ import os
 def run():
 
     parser = argparse.ArgumentParser(
-        description='desc ...'
+        description='Implementation of distributed election algorithms.'
     )
 
-    parser.add_argument("-v", "--verbose", help="increase output verbosity",
+    parser.add_argument("-v", "--verbose", default="False", help="increase output verbosity",
                         action="store_true")
-
-    parser.add_argument("-a", "--algorithm", help="ring or bully")
+    parser.add_argument("-d", "--delay", default="False",
+                        help="generate a random delay to forwarding messages", action="store_true")
+    parser.add_argument("-a", "--algorithm", action='store',
+                        default="ring", choices=["ring", "bully"], help="ring by default")
 
     args = parser.parse_args()
 
@@ -22,15 +24,11 @@ def run():
     print(intro)
     print("(Info: https://github.com/matt-merman/sdcc)\n")
 
-    verbose = False
-    if args.verbose:
-        verbose = True
-
     algorithm = False
     if args.algorithm == "bully":
         algorithm = True
 
-    node = Node(verbose, algorithm, "./config.json")
+    node = Node(args.verbose, algorithm, "../config.json", args.delay)
     node.start()
 
 

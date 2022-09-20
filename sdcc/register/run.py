@@ -24,7 +24,7 @@ def run():
     if args.verbose:
         verbose = True
 
-    register = Register(verbose, "./config.json")
+    register = Register(verbose, "../config.json")
     register.receive()
     register.send()
 

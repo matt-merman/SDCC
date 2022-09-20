@@ -22,7 +22,8 @@ class Type(Enum):
 
 class Algorithm(ABC):
 
-    def __init__(self, ip, port, id, nodes, socket, verbose):
+    def __init__(self, ip: str, port: int, id: int,
+                 nodes: list, socket: socket, verbose: bool, delay: bool):
 
         self.verbose = verbose
         self.ip = ip
@@ -32,6 +33,7 @@ class Algorithm(ABC):
         self.socket = socket
         self.coordinator = -1
         self.lock = Lock()
+        self.delay = delay
 
         sign.signal(sign.SIGINT, self.handler)
 
@@ -50,7 +52,7 @@ class Algorithm(ABC):
         pass
 
     @abstractmethod
-    def end_msg(self):
+    def end_msg(self, msg: dict):
         pass
 
     @abstractmethod
@@ -58,7 +60,7 @@ class Algorithm(ABC):
         pass
 
     @abstractmethod
-    def election_msg(self):
+    def election_msg(self, msg: dict):
         pass
 
     @abstractmethod
@@ -78,11 +80,13 @@ class Algorithm(ABC):
 
             if data["type"] == Type['HEARTBEAT'].value:
 
-                delay = randint(0, HEARTBEAT_TIME*2)
-                time.sleep(delay)
+                if self.delay:
+                    delay = randint(0, HEARTBEAT_TIME*2)
+                    time.sleep(delay)
 
                 msg = help.create_msg(
                     self.id, Type['ACK'].value, self.port, self.ip)
+
                 if self.verbose:
                     verb.print_log_tx(self.logging, addr,
                                       (self.ip, self.port), self.id, eval(msg.decode('utf-8')))
@@ -101,7 +105,7 @@ class Algorithm(ABC):
 
             func[data["type"]](data)
 
-    def crash(self, socket):
+    def crash(self, socket: socket):
         socket.settimeout(None)
         # remove the last node (a.k.a coordinator)
         self.nodes.pop()
@@ -110,7 +114,7 @@ class Algorithm(ABC):
 
     def heartbeat(self):
 
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         address = (self.ip, 0)
         s.bind(address)
         address = s.getsockname()
@@ -138,7 +142,7 @@ class Algorithm(ABC):
             s.sendto(msg, dest)
             self.receive(s, dest, TOTAL_DELAY)
 
-    def receive(self, sock, dest, waiting):
+    def receive(self, sock: socket, dest: tuple, waiting: int):
 
         start = round(time.time())
         sock.settimeout(waiting)
@@ -160,7 +164,7 @@ class Algorithm(ABC):
         except socket.timeout:
             self.crash(sock)
 
-    def handler(self, signum, frame):
+    def handler(self, signum: int, frame):
         self.logging.debug("[Node]: (ip:{} port:{} id:{})\nKilled\n".format(
             self.ip, self.port, self.id))
         sys.exit(1)

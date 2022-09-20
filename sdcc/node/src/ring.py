@@ -6,6 +6,7 @@ from .algorithm import Algorithm, Type
 from . import verbose as verb
 import sys
 import time
+import socket
 
 
 class Ring(Algorithm):
@@ -20,9 +21,9 @@ class Ring(Algorithm):
         - Elected = End
     """
 
-    def __init__(self, ip, port, id, nodes, socket, verbose):
+    def __init__(self, ip: str, port: int, id: int, nodes: list, socket: socket, verbose: bool, delay: bool):
 
-        Algorithm.__init__(self, ip, port, id, nodes, socket, verbose)
+        Algorithm.__init__(self, ip, port, id, nodes, socket, verbose, delay)
 
     def start_election(self):
 
@@ -39,7 +40,7 @@ class Ring(Algorithm):
         self.forwarding(self.id, Type['ELECTION'])
         self.lock.release()
 
-    def end_msg(self, data):
+    def end_msg(self, data: dict):
         self.lock.acquire()
         if self.coordinator == self.id:
             self.lock.release()
@@ -50,7 +51,7 @@ class Ring(Algorithm):
         self.forwarding(data["id"], Type['END'])
         self.lock.release()
 
-    def election_msg(self, data):
+    def election_msg(self, data: dict):
 
         self.lock.acquire()
         current_id = data["id"]
@@ -72,10 +73,11 @@ class Ring(Algorithm):
         self.forwarding(current_id, Type['ELECTION'])
         self.lock.release()
 
-    def forwarding(self, id, type):
+    def forwarding(self, id: int, type: Type):
 
-        delay = randint(0, HEARTBEAT_TIME*2)
-        time.sleep(delay)
+        if self.delay:
+            delay = randint(0, HEARTBEAT_TIME*2)
+            time.sleep(delay)
 
         index = help.get_index(self.id, self.nodes) + 1
         if index >= len(self.nodes):
