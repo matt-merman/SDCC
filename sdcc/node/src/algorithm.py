@@ -12,6 +12,11 @@ from random import randint
 
 
 class Type(Enum):
+
+    """
+    Class contains message types exchanged in Bully and Ring-based algorithm. 
+    """
+
     ELECTION = 0
     END = 1
     ANSWER = 2
@@ -22,22 +27,33 @@ class Type(Enum):
 
 class Algorithm(ABC):
 
-    def __init__(self, ip: str, port: int, id: int,
-                 nodes: list, socket: socket, verbose: bool, delay: bool):
+    """
+    Parent class for Bully and Ring classes. 
+    """
 
-        self.verbose = verbose
+    def __init__(self, ip: str, port: int, id: int,
+                 nodes: list, socket: socket, verbose: bool, delay: bool, algo: bool):
+
         self.ip = ip
         self.port = port
         self.id = id
+
         self.nodes = nodes
         self.socket = socket
+        self.algo = algo
+
         self.coordinator = -1
         self.lock = Lock()
+
+        # boolean params passed by command line
         self.delay = delay
+        self.verbose = verbose
 
         sign.signal(sign.SIGINT, self.handler)
 
         self.logging = verb.set_logging()
+
+        # by default a node does not participate to election
         self.participant = False
 
         thread = Thread(target=self.listening)
@@ -105,10 +121,14 @@ class Algorithm(ABC):
 
             func[data["type"]](data)
 
+    # method to manage a leaders' crash
     def crash(self, socket: socket):
         socket.settimeout(None)
-        # remove the last node (a.k.a coordinator)
-        self.nodes.pop()
+
+        # if using bully alg. remove the last node (a.k.a. leader)
+        if self.algo == False:
+            self.nodes.pop()
+
         self.lock.release()
         self.start_election()
 
@@ -124,6 +144,8 @@ class Algorithm(ABC):
             time.sleep(HEARTBEAT_TIME)
 
             self.lock.acquire()
+            # do not heartbeat the leader if current node is running an election
+            # or if is the leader
             if self.participant or (self.coordinator == self.id):
                 self.lock.release()
                 continue
@@ -140,10 +162,12 @@ class Algorithm(ABC):
                                   (self.ip, self.port), self.id, eval(msg.decode('utf-8')))
 
             s.sendto(msg, dest)
-            self.receive(s, dest, TOTAL_DELAY)
+            self.receive_ack(s, dest, TOTAL_DELAY)
 
-    def receive(self, sock: socket, dest: tuple, waiting: int):
+    def receive_ack(self, sock: socket, dest: tuple, waiting: int):
 
+        # need to calculate the starting time to provide
+        # a residual time to use as timeout when invalid packet is received
         start = round(time.time())
         sock.settimeout(waiting)
 
@@ -153,18 +177,20 @@ class Algorithm(ABC):
             if self.verbose:
                 verb.print_log_rx(self.logging, dest, addr, self.id, data)
 
-            if data["id"] == self.coordinator and data["type"] == Type["ACK"].value:
+            # expected packet received (i.e., with current leaders' id and ack type)
+            if (data["id"] == self.coordinator) and (data["type"] == Type["ACK"].value):
                 self.lock.release()
 
+            # invalid packet received (e.g., a delayed ack by the previous leader)
             else:
                 sock.settimeout(None)
                 stop = round(time.time())
-                self.receive(sock, dest, waiting - (stop-start))
+                self.receive_ack(sock, dest, waiting - (stop-start))
 
         except socket.timeout:
             self.crash(sock)
 
     def handler(self, signum: int, frame):
-        self.logging.debug("[Node]: (ip:{} port:{} id:{})\nKilled\n".format(
+        self.logging.debug("[Node]: (ip:{} port:{} id:{})\n[Killed]\n".format(
             self.ip, self.port, self.id))
         sys.exit(1)

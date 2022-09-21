@@ -42,7 +42,8 @@ def run():
     print("(Info: https://github.com/matt-merman/sdcc)\n")
     print("(WARNING: Using a UDP connection may cause the packet loss)\n")
 
-    algorithm = True  # i.e., Bully alg.
+    # Bully alg. by default
+    algorithm = True
     nodes = 4
 
     while True:

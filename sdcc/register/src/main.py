@@ -6,6 +6,11 @@ from . import helpers as help
 
 class Register:
 
+    """
+    Register class provides the register service to all network members.
+    Register socket is kept open for a SOCKET_TIMEOUT period.
+    """
+
     def __init__(self, verbose: bool, config_path: str):
 
         with open(config_path, "r") as config_file:
@@ -33,7 +38,10 @@ class Register:
         while True:
             try:
                 msg, addr = self.socket.recvfrom(const.BUFF_SIZE)
+
+                # randomly generates an id for every nodes
                 identifier = help.generate(list_id)
+
                 node = dict({'ip': addr[0], 'port': addr[1], 'id': identifier})
                 self.nodes.append(node)
                 msg = eval(msg.decode('utf-8'))
@@ -65,5 +73,6 @@ class Register:
 
         self.socket.close()
 
+    # method used by tests class
     def get_list(self) -> list:
         return self.nodes

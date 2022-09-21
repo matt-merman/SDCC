@@ -10,9 +10,9 @@ def run():
         description='Implementation of distributed election algorithms.'
     )
 
-    parser.add_argument("-v", "--verbose", default="False", help="increase output verbosity",
+    parser.add_argument("-v", "--verbose", default=False, help="increase output verbosity",
                         action="store_true")
-    parser.add_argument("-d", "--delay", default="False",
+    parser.add_argument("-d", "--delay", default=False,
                         help="generate a random delay to forwarding messages", action="store_true")
     parser.add_argument("-a", "--algorithm", action='store',
                         default="ring", choices=["ring", "bully"], help="ring by default")

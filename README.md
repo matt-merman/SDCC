@@ -15,7 +15,27 @@ The aim is to implement two election distributed algorithms (i.e. _Chang and Rob
 
 ## Running
 
+
+
+### AWS EC2 with Docker Containers
+
+```bash
+# Connect to EC2 instances
+ssh -i "SDCC_key.pem" ubuntu@ip_instance
+
+# Upload application to EC2 instance
+scp -i SDCC_key.pem -r SDCC/sdcc user@ip_instance:/home/user/  
+
+# Execute the whole application with nodes in local 
+docker compose up
+```
+
+
+
 ## Implementation
+
+Please see [report](https://github.com/matt-merman/SDCC/blob/main/docs/report.pdf) for more details.
+
 
 
 

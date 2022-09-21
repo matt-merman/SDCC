@@ -16,14 +16,15 @@ class Ring(Algorithm):
     arranged in a logical ring. Each process has a communication channel
     to the next process in the ring, and all messages are sent clockwise around the ring.
 
-    Types of messages:
+    Types of messages exchanged:
         - Election = Election
         - Elected = End
     """
 
-    def __init__(self, ip: str, port: int, id: int, nodes: list, socket: socket, verbose: bool, delay: bool):
+    def __init__(self, ip: str, port: int, id: int, nodes: list, socket: socket, verbose: bool, delay: bool, algo: bool):
 
-        Algorithm.__init__(self, ip, port, id, nodes, socket, verbose, delay)
+        Algorithm.__init__(self, ip, port, id, nodes,
+                           socket, verbose, delay, algo)
 
     def start_election(self):
 
@@ -40,6 +41,7 @@ class Ring(Algorithm):
         self.forwarding(self.id, Type['ELECTION'])
         self.lock.release()
 
+    # process receives an elected message
     def end_msg(self, data: dict):
         self.lock.acquire()
         if self.coordinator == self.id:
@@ -54,7 +56,11 @@ class Ring(Algorithm):
     def election_msg(self, data: dict):
 
         self.lock.acquire()
+
+        # compares the identifier in the message with its own
         current_id = data["id"]
+
+        # current node becomes the coordinator
         if current_id == self.id:
             self.participant = False
             self.coordinator = self.id
@@ -64,11 +70,15 @@ class Ring(Algorithm):
 
         elif current_id < self.id:
             if self.participant == False:
+                # substitutes its own identifier in the message
+                # and forwards it
                 current_id = self.id
             else:
                 self.lock.release()
                 return
 
+        # If the arrived identifier is greater,
+        # it forwards the message to its neighbour
         self.participant = True
         self.forwarding(current_id, Type['ELECTION'])
         self.lock.release()
