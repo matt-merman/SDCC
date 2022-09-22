@@ -29,6 +29,9 @@ class Bully(Algorithm):
 
     def start_election(self):
 
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.bind((self.ip, 0))
+
         self.lock.acquire()
 
         index = help.get_index(self.id, self.nodes) + 1
@@ -43,7 +46,17 @@ class Bully(Algorithm):
 
             # election messages are sent to those processes that have a higher identifier
             for node in range(index, len(self.nodes)):
-                self.forwarding(self.nodes[node], self.id, Type['ELECTION'])
+                try:
+                    sock.connect(
+                        (self.nodes[node]["ip"], self.nodes[node]["port"]))
+                except:
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    sock.bind((self.ip, 0))
+                    sock.connect(
+                        (self.nodes[node]["ip"], self.nodes[node]["port"]))
+
+                self.forwarding(self.nodes[node],
+                                self.id, Type['ELECTION'], sock)
 
             self.lock.release()
 
@@ -70,7 +83,19 @@ class Bully(Algorithm):
         # send a coordinator message to all processes
         # with lower identifiers
         for node in range(len(self.nodes) - 1):
-            self.forwarding(self.nodes[node], self.id, Type['END'])
+            if node == (index - 1):
+                continue
+
+            try:
+                sock.connect(
+                    (self.nodes[node]["ip"], self.nodes[node]["port"]))
+            except:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.bind((self.ip, 0))
+                sock.connect(
+                    (self.nodes[node]["ip"], self.nodes[node]["port"]))
+
+            self.forwarding(self.nodes[node], self.id, Type['END'], sock)
 
         self.lock.release()
 
@@ -80,15 +105,15 @@ class Bully(Algorithm):
         self.lock.release()
 
     # received a coordinator message
-    def end_msg(self, msg: dict):
+    def end_msg(self, msg: dict, conn: socket):
         self.lock.acquire()
         self.coordinator = msg["id"]
         self.coordinator_msg = True
         self.lock.release()
 
-    def election_msg(self, msg: dict):
+    def election_msg(self, msg: dict, conn: socket):
         self.lock.acquire()
-        self.forwarding(msg, self.id, Type['ANSWER'])
+        self.forwarding(msg, self.id, Type['ANSWER'], None)
         if self.participant == False:
             self.lock.release()
             self.start_election()
@@ -96,7 +121,7 @@ class Bully(Algorithm):
 
         self.lock.release()
 
-    def forwarding(self, node: dict, id: int, type: Type):
+    def forwarding(self, node: dict, id: int, type: Type, conn: socket):
 
         if self.delay:
             delay = randint(0, HEARTBEAT_TIME*2)
@@ -109,7 +134,16 @@ class Bully(Algorithm):
         if self.verbose:
             verb.print_log_tx(self.logging, dest, (self.ip, self.port),
                               self.id, eval(msg.decode('utf-8')))
-        self.socket.sendto(msg, dest)
+
+        if conn == None:
+            e_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            e_sock.bind((self.ip, 0))
+            e_sock.connect(dest)
+            e_sock.send(msg)
+            e_sock.close
+        else:
+            conn.sendto(msg, dest)
+            # conn.close()
 
     def further_waiting(self):
         timeout = time.time() + TOTAL_DELAY

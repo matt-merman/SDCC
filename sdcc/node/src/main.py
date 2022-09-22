@@ -32,11 +32,14 @@ class Node:
 
     def start(self):
 
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        address = (self.ip, 0)
-        s.bind(address)
+        # ephemeral socket used with register
+        e_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        e_sock.bind((self.ip, 0))
 
-        info = s.getsockname()
+        # socket used in listening phase
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.bind((self.ip, 0))
+        info = sock.getsockname()
         self.port = info[1]
 
         if self.verbose:
@@ -46,26 +49,32 @@ class Node:
         # sends a request to join the network contacting the register node
         msg = create_msg(-1, Type['REGISTER'].value, self.port, self.ip)
         dest = (self.ip_register, self.port_register)
-        s.sendto(msg, dest)
+
+        e_sock.connect(dest)
+        e_sock.send(msg)
 
         # waits to receive the complete list of network members
-        msg, addr = s.recvfrom(BUFF_SIZE)
-        msg = eval(msg.decode('utf-8'))
+        data = e_sock.recv(BUFF_SIZE)
+        msg = eval(data.decode('utf-8'))
+
         identifier = get_id(self.port, msg)
 
         if self.verbose:
             print_log_rx(self.logging, (self.ip, self.port),
-                         addr, identifier, msg)
+                         dest, identifier, msg)
 
         # check if current node is the last one
         if (len(msg) == 1):
-            s.close()
-            print("Not enough nodes generated")
+            e_sock.close()
+            sock.close()
+            print("Not enough nodes generated!")
             sys.exit(1)
+
+        e_sock.close()
 
         if self.algorithm:
             Bully(self.ip, self.port, identifier,
-                  msg, s, self.verbose, self.delay, self.algorithm)
+                  msg, sock, self.verbose, self.delay, self.algorithm)
         else:
             Ring(self.ip, self.port, identifier,
-                 msg, s, self.verbose, self.delay, self.algorithm)
+                 msg, sock, self.verbose, self.delay, self.algorithm)

@@ -23,9 +23,10 @@ class Register:
         self.verbose = verbose
         self.logging = help.set_logging()
 
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        server_address = (self.ip, self.port)
-        self.socket.bind(server_address)
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.bind((self.ip, self.port))
+        self.sock.listen()
+        self.connections = []
 
     def receive(self):
 
@@ -34,25 +35,27 @@ class Register:
                 self.ip, self.port))
 
         list_id = []
-        self.socket.settimeout(const.SOCKET_TIMEOUT)
+        self.sock.settimeout(const.SOCKET_TIMEOUT)
         while True:
             try:
-                msg, addr = self.socket.recvfrom(const.BUFF_SIZE)
+
+                conn, addr = self.sock.accept()
+                data = conn.recv(const.BUFF_SIZE)
+                msg = eval(data.decode('utf-8'))
+                if msg["type"] != const.REGISTER:
+                    continue
 
                 # randomly generates an id for every nodes
                 identifier = help.generate(list_id)
 
-                node = dict({'ip': addr[0], 'port': addr[1], 'id': identifier})
+                self.connections.append(conn)
+                node = dict(
+                    {'ip': msg["ip"], 'port': msg["port"], 'id': identifier})
                 self.nodes.append(node)
-                msg = eval(msg.decode('utf-8'))
-
-                if msg["type"] != const.REGISTER:
-                    continue
 
                 if self.verbose:
                     help.print_log_rx(self.logging, (self.ip, self.port),
                                       addr, 0, msg)
-
             except socket.timeout:
                 break
 
@@ -60,7 +63,7 @@ class Register:
 
     def send(self):
 
-        msg = str(self.nodes).encode('utf-8')
+        data = str(self.nodes).encode('utf-8')
         for node in range(len(self.nodes)):
 
             ip = self.nodes[node]["ip"]
@@ -69,9 +72,12 @@ class Register:
             if self.verbose:
                 help.print_log_tx(self.logging, (ip, port),
                                   (self.ip, self.port), identifier, self.nodes)
-            self.socket.sendto(msg, (ip, port))
+            try:
+                self.connections[node].send(data)
+            except socket.timeout:
+                print("Error: no ack from node on port {}".format(port))
 
-        self.socket.close()
+        self.sock.close()
 
     # method used by tests class
     def get_list(self) -> list:
