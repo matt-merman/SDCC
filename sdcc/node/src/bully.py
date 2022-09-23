@@ -50,11 +50,7 @@ class Bully(Algorithm):
                     sock.connect(
                         (self.nodes[node]["ip"], self.nodes[node]["port"]))
                 except:
-                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    sock.bind((self.ip, 0))
-                    sock.connect(
-                        (self.nodes[node]["ip"], self.nodes[node]["port"]))
-
+                    continue
                 self.forwarding(self.nodes[node],
                                 self.id, Type['ELECTION'], sock)
 
@@ -83,19 +79,20 @@ class Bully(Algorithm):
         # send a coordinator message to all processes
         # with lower identifiers
         for node in range(len(self.nodes) - 1):
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.bind((self.ip, 0))
+            print(self.nodes[node])
             if node == (index - 1):
                 continue
-
             try:
                 sock.connect(
                     (self.nodes[node]["ip"], self.nodes[node]["port"]))
             except:
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.bind((self.ip, 0))
-                sock.connect(
-                    (self.nodes[node]["ip"], self.nodes[node]["port"]))
+                print("here2\n")
+                continue
 
             self.forwarding(self.nodes[node], self.id, Type['END'], sock)
+            sock.close()
 
         self.lock.release()
 
@@ -105,13 +102,16 @@ class Bully(Algorithm):
         self.lock.release()
 
     # received a coordinator message
-    def end_msg(self, msg: dict, conn: socket):
+    def end_msg(self, msg: dict):
+
+        print("here\n")
+
         self.lock.acquire()
         self.coordinator = msg["id"]
         self.coordinator_msg = True
         self.lock.release()
 
-    def election_msg(self, msg: dict, conn: socket):
+    def election_msg(self, msg: dict):
         self.lock.acquire()
         self.forwarding(msg, self.id, Type['ANSWER'], None)
         if self.participant == False:
@@ -143,7 +143,6 @@ class Bully(Algorithm):
             e_sock.close
         else:
             conn.sendto(msg, dest)
-            # conn.close()
 
     def further_waiting(self):
         timeout = time.time() + TOTAL_DELAY

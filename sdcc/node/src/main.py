@@ -39,6 +39,7 @@ class Node:
         # socket used in listening phase
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.bind((self.ip, 0))
+        sock.listen()
         info = sock.getsockname()
         self.port = info[1]
 

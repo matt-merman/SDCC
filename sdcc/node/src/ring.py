@@ -85,6 +85,9 @@ class Ring(Algorithm):
 
     def forwarding(self, id: int, type: Type):
 
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.bind((self.ip, 0))
+
         if self.delay:
             delay = randint(0, HEARTBEAT_TIME*2)
             time.sleep(delay)
@@ -97,11 +100,24 @@ class Ring(Algorithm):
 
         msg = help.create_msg(id, type.value, self.port, self.ip)
 
+        try:
+            sock.connect(dest)
+        except:
+            self.nodes.pop(index)
+            if len(self.nodes) == 1:
+                sock.close()
+                return
+            self.forwarding(id, type)
+            sock.close()
+            return
+
         if self.verbose:
             verb.print_log_tx(self.logging, dest, (self.ip, self.port),
                               self.id, eval(msg.decode('utf-8')))
 
-        self.socket.sendto(msg, dest)
+        sock.send(msg)
+        sock.shutdown(socket.SHUT_RDWR)
+        sock.close()
 
    # useless method needed in the bully alg.
     def answer_msg(self):

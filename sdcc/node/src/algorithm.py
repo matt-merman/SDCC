@@ -68,7 +68,7 @@ class Algorithm(ABC):
         pass
 
     @abstractmethod
-    def end_msg(self, msg: dict, conn: socket):
+    def end_msg(self, msg: dict):
         pass
 
     @abstractmethod
@@ -76,7 +76,7 @@ class Algorithm(ABC):
         pass
 
     @abstractmethod
-    def election_msg(self, msg: dict, conn: socket):
+    def election_msg(self, msg: dict):
         pass
 
     @abstractmethod
@@ -85,10 +85,9 @@ class Algorithm(ABC):
 
     def listening(self):
 
-        self.socket.listen()
-
         while True:
 
+            self.socket.listen()
             conn, addr = self.socket.accept()
             data = conn.recv(BUFF_SIZE)
             data = eval(data.decode('utf-8'))
@@ -111,25 +110,23 @@ class Algorithm(ABC):
                                       (self.ip, self.port), self.id, eval(msg.decode('utf-8')))
 
                 conn.send(msg)
-                # conn.close()
                 continue
 
             elif data["type"] == Type['ANSWER'].value:
-                # conn.close()
                 self.answer_msg()
+                conn.close()
                 continue
 
             func = {Type['ELECTION'].value: self.election_msg,
                     Type['END'].value: self.end_msg
                     }
 
-            func[data["type"]](data, conn)
-            # conn.close()
+            func[data["type"]](data)
 
     # method to manage a leaders' crash
     def crash(self):
-        # if using bully alg. remove the last node (a.k.a. leader)
-        if self.algo == True:
+        # if using ring alg. remove the last node (a.k.a. leader)
+        if self.algo == False:
             self.nodes.pop()
 
         self.lock.release()
@@ -143,7 +140,6 @@ class Algorithm(ABC):
         address = s.getsockname()
 
         while True:
-
             time.sleep(HEARTBEAT_TIME)
             self.lock.acquire()
             # do not heartbeat the leader if current node is running an election
@@ -172,8 +168,7 @@ class Algorithm(ABC):
                 address = s.getsockname()
                 try:
                     s.connect(dest)
-                except:  # socket.error as serr:
-                    # if serr.errno == errno.ECONNREFUSED:
+                except:
                     self.crash()
                     continue
 
@@ -191,10 +186,6 @@ class Algorithm(ABC):
             data = sock.recv(BUFF_SIZE)
             msg = eval(data.decode('utf-8'))
 
-            addr = (msg["ip"], msg["port"])
-            if self.verbose:
-                verb.print_log_rx(self.logging, dest, addr, self.id, msg)
-
             # expected packet received (i.e., with current leaders' id and ack type)
             if (msg["id"] == self.coordinator) and (msg["type"] == Type["ACK"].value):
                 self.lock.release()
@@ -205,10 +196,16 @@ class Algorithm(ABC):
                 stop = round(time.time())
                 self.receive_ack(sock, dest, waiting - (stop-start))
 
+            addr = (msg["ip"], msg["port"])
+            if self.verbose:
+                verb.print_log_rx(self.logging, dest, addr, self.id, msg)
+
         except socket.timeout:
             self.crash()
 
     def handler(self, signum: int, frame):
         self.logging.debug("[Node]: (ip:{} port:{} id:{})\n[Killed]\n".format(
             self.ip, self.port, self.id))
+        self.socket.shutdown(socket.SHUT_RDWR)
+        self.socket.close()
         sys.exit(1)

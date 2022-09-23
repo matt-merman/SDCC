@@ -2,6 +2,8 @@ import socket
 import json
 from . import constants as const
 from . import helpers as help
+import signal
+import sys
 
 
 class Register:
@@ -19,22 +21,26 @@ class Register:
         self.port = config["register"]["port"]
         self.ip = config["register"]["ip"]
 
+        signal.signal(signal.SIGINT, self.handler)
+
         self.nodes = []
         self.verbose = verbose
         self.logging = help.set_logging()
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((self.ip, self.port))
-        self.sock.listen()
         self.connections = []
 
     def receive(self):
+
+        self.sock.listen()
 
         if self.verbose:
             self.logging.debug("[Register]: (ip:{} port:{})\n[Triggered]\n".format(
                 self.ip, self.port))
 
-        list_id = []
+        ids = []
         self.sock.settimeout(const.SOCKET_TIMEOUT)
         while True:
             try:
@@ -43,10 +49,11 @@ class Register:
                 data = conn.recv(const.BUFF_SIZE)
                 msg = eval(data.decode('utf-8'))
                 if msg["type"] != const.REGISTER:
+                    conn.close()
                     continue
 
                 # randomly generates an id for every nodes
-                identifier = help.generate(list_id)
+                identifier = help.generate(ids)
 
                 self.connections.append(conn)
                 node = dict(
@@ -77,7 +84,17 @@ class Register:
             except socket.timeout:
                 print("Error: no ack from node on port {}".format(port))
 
+        self.close()
+
+    def handler(self, signum: int, frame):
+        self.logging.debug("[Register]: (ip:{} port:{})\n[Killed]\n".format(
+            self.ip, self.port))
+        self.close()
+
+    def close(self):
+        self.sock.shutdown(socket.SHUT_RDWR)
         self.sock.close()
+        sys.exit(1)
 
     # method used by tests class
     def get_list(self) -> list:

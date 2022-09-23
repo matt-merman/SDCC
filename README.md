@@ -27,7 +27,7 @@ ssh -i "SDCC_key.pem" ubuntu@ip_instance
 scp -i SDCC_key.pem -r SDCC/sdcc user@ip_instance:/home/user/  
 
 # Execute the whole application with nodes in local 
-docker compose up
+sudo docker-compose up
 ```
 
 

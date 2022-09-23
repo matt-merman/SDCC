@@ -1,4 +1,5 @@
 import json
+import socket
 
 
 def get_index(id: int, list: list) -> int:
@@ -23,3 +24,10 @@ def create_msg(id: int, type: int, port: int, ip: str) -> dict:
     msg = json.dumps(msg)
     msg = str(msg).encode('utf-8')
     return msg
+
+
+def create_socket(ip: str) -> socket:
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    address = (ip, 0)
+    sock.bind(address)
+    return sock
