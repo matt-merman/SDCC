@@ -40,7 +40,6 @@ def run():
     intro = pyfiglet.figlet_format("TEST", font="slant")
     print(intro)
     print("(Info: https://github.com/matt-merman/sdcc)\n")
-    print("(WARNING: Using a UDP connection may cause the packet loss)\n")
 
     # Bully alg. by default
     algorithm = True
@@ -54,7 +53,6 @@ def run():
             print(INVALID_OUT)
             continue
         except KeyboardInterrupt:
-            print()
             return
 
         if op not in [1, 2, 3, 4, 5, 6]:

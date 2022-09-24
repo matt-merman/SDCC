@@ -1,4 +1,3 @@
-import socket
 import json
 import sys
 
@@ -6,7 +5,7 @@ from .ring import Ring, Type
 from .verbose import set_logging, print_log_rx
 from .bully import Bully
 from .constants import BUFF_SIZE
-from .helpers import create_msg, get_id
+from .helpers import create_msg, get_id, create_socket
 
 
 class Node:
@@ -33,49 +32,43 @@ class Node:
     def start(self):
 
         # ephemeral socket used with register
-        e_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        e_sock.bind((self.ip, 0))
+        ephemeral_sock = create_socket(self.ip)
 
         # socket used in listening phase
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.bind((self.ip, 0))
+        sock = create_socket(self.ip)
         sock.listen()
-        info = sock.getsockname()
-        self.port = info[1]
 
         if self.verbose:
             self.logging.debug("[Node]: (ip:{} port:{})\n[Triggered]\n".format(
-                self.ip, self.port))
+                self.ip, sock.getsockname()[1]))
 
         # sends a request to join the network contacting the register node
-        msg = create_msg(-1, Type['REGISTER'].value, self.port, self.ip)
+        msg = create_msg(-1, Type['REGISTER'].value,
+                         sock.getsockname()[1], self.ip)
         dest = (self.ip_register, self.port_register)
 
-        e_sock.connect(dest)
-        e_sock.send(msg)
+        ephemeral_sock.connect(dest)
+        ephemeral_sock.send(msg)
 
         # waits to receive the complete list of network members
-        data = e_sock.recv(BUFF_SIZE)
+        data = ephemeral_sock.recv(BUFF_SIZE)
         msg = eval(data.decode('utf-8'))
+        identifier = get_id(sock.getsockname()[1], msg)
 
-        identifier = get_id(self.port, msg)
+        print_log_rx(self.verbose, self.logging, (self.ip, sock.getsockname()[1]),
+                     dest, identifier, msg)
 
-        if self.verbose:
-            print_log_rx(self.logging, (self.ip, self.port),
-                         dest, identifier, msg)
+        ephemeral_sock.close()
 
         # check if current node is the last one
         if (len(msg) == 1):
-            e_sock.close()
             sock.close()
             print("Not enough nodes generated!")
             sys.exit(1)
 
-        e_sock.close()
-
         if self.algorithm:
-            Bully(self.ip, self.port, identifier,
+            Bully(self.ip, sock.getsockname()[1], identifier,
                   msg, sock, self.verbose, self.delay, self.algorithm)
         else:
-            Ring(self.ip, self.port, identifier,
+            Ring(self.ip, sock.getsockname()[1], identifier,
                  msg, sock, self.verbose, self.delay, self.algorithm)

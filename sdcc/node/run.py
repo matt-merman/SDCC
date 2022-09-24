@@ -7,7 +7,7 @@ import os
 def run():
 
     parser = argparse.ArgumentParser(
-        description='Implementation of distributed election algorithms.'
+        description='Implementation of distributed election algorithms.\nGeneric node.'
     )
 
     parser.add_argument("-v", "--verbose", default=False, help="increase output verbosity",
@@ -16,8 +16,13 @@ def run():
                         help="generate a random delay to forwarding messages", action="store_true")
     parser.add_argument("-a", "--algorithm", action='store',
                         default="ring", choices=["ring", "bully"], help="ring by default")
+    parser.add_argument("-c", "--config_file", action='store',
+                        help="needed a config file in json format")
 
     args = parser.parse_args()
+
+    if not (args.config_file):
+        parser.error('No json file passed')
 
     os.system("clear")
     intro = pyfiglet.figlet_format("NODE", font="slant")
@@ -28,7 +33,8 @@ def run():
     if args.algorithm == "bully":
         algorithm = True
 
-    node = Node(args.verbose, algorithm, "../config.json", args.delay)
+    # in local "../config.json"
+    node = Node(args.verbose, algorithm, args.config_file, args.delay)
     node.start()
 
 

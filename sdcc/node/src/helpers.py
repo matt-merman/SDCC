@@ -1,5 +1,14 @@
 import json
 import socket
+from random import randint
+import time
+from math import floor
+
+
+def delay(flag: bool, ub: int):
+    if flag:
+        delay = randint(0, floor(ub/2))
+        time.sleep(delay)
 
 
 def get_index(id: int, list: list) -> int:

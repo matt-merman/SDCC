@@ -9,5 +9,5 @@ RUN apk add --no-cache gcc musl-dev linux-headers python3 py3-pip python3-dev
 WORKDIR /node
 COPY . .
 RUN pip install -r requirements.txt
-CMD ["python3", "./node/run.py", "-v"]
+CMD ["python3", "./node/run.py", "-v", "-c ./config.json"]
 

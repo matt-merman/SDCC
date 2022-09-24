@@ -13,7 +13,7 @@ class Register:
     Register socket is kept open for a SOCKET_TIMEOUT period.
     """
 
-    def __init__(self, verbose: bool, config_path: str):
+    def __init__(self, verbose: bool, config_path: str, test: bool):
 
         with open(config_path, "r") as config_file:
             config = json.load(config_file)
@@ -21,7 +21,10 @@ class Register:
         self.port = config["register"]["port"]
         self.ip = config["register"]["ip"]
 
-        signal.signal(signal.SIGINT, self.handler)
+        self.test = test
+
+        if not test:
+            signal.signal(signal.SIGINT, self.handler)
 
         self.nodes = []
         self.verbose = verbose
@@ -60,9 +63,8 @@ class Register:
                     {'ip': msg["ip"], 'port': msg["port"], 'id': identifier})
                 self.nodes.append(node)
 
-                if self.verbose:
-                    help.print_log_rx(self.logging, (self.ip, self.port),
-                                      addr, 0, msg)
+                help.print_log_rx(self.verbose, self.logging, (self.ip, self.port),
+                                  addr, 0, msg)
             except socket.timeout:
                 break
 
@@ -76,15 +78,15 @@ class Register:
             ip = self.nodes[node]["ip"]
             port = self.nodes[node]["port"]
             identifier = self.nodes[node]["id"]
-            if self.verbose:
-                help.print_log_tx(self.logging, (ip, port),
-                                  (self.ip, self.port), identifier, self.nodes)
+            help.print_log_tx(self.verbose, self.logging, (ip, port),
+                              (self.ip, self.port), identifier, self.nodes)
             try:
                 self.connections[node].send(data)
             except socket.timeout:
                 print("Error: no ack from node on port {}".format(port))
 
-        self.close()
+        if not self.test:
+            self.close()
 
     def handler(self, signum: int, frame):
         self.logging.debug("[Register]: (ip:{} port:{})\n[Killed]\n".format(
@@ -92,7 +94,6 @@ class Register:
         self.close()
 
     def close(self):
-        self.sock.shutdown(socket.SHUT_RDWR)
         self.sock.close()
         sys.exit(1)
 

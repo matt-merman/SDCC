@@ -44,7 +44,7 @@ class Tests:
 
         self.logging.debug("================= Test =================\n"
                            "[Generated {} nodes]\n[More Details]: {}\n"
-                           "=======================================\n".format(
+                           "========================================\n".format(
                                len(self.nodes), self.nodes))
 
     def test_a(self):
@@ -89,7 +89,7 @@ class Tests:
         self.logging.debug("====== Test C finished =====\n")
 
     def generate_register(self):
-        register = Register(self.verbose, "./config.json")
+        register = Register(self.verbose, "./config.json", True)
         register.receive()
         register.send()
         self.nodes = register.get_list()
@@ -101,7 +101,7 @@ class Utils:
         pass
 
     def generate_node(self, verbose: bool, algo: bool, delay: bool):
-        node = Node(verbose, algo, "../config.json", delay)
+        node = Node(verbose, algo, "./config.json", delay)
         node.start()
 
     def kill_node(self, port: int):

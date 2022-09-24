@@ -1,11 +1,8 @@
-from random import randint
-
 from .constants import HEARTBEAT_TIME
 from . import helpers as help
 from .algorithm import Algorithm, Type
 from . import verbose as verb
 import sys
-import time
 import socket
 
 
@@ -85,39 +82,29 @@ class Ring(Algorithm):
 
     def forwarding(self, id: int, type: Type):
 
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.bind((self.ip, 0))
-
-        if self.delay:
-            delay = randint(0, HEARTBEAT_TIME*2)
-            time.sleep(delay)
+        sock = help.create_socket(self.ip)
+        help.delay(self.delay, HEARTBEAT_TIME)
 
         index = help.get_index(self.id, self.nodes) + 1
         if index >= len(self.nodes):
             index = 0
-        node = self.nodes[index]
-        dest = (node["ip"], node["port"])
 
+        node = self.nodes[index]
         msg = help.create_msg(id, type.value, self.port, self.ip)
 
         try:
+            dest = (node["ip"], node["port"])
             sock.connect(dest)
+            verb.print_log_tx(self.verbose, self.logging, dest, (self.ip, self.port),
+                              self.id, eval(msg.decode('utf-8')))
+            sock.send(msg)
+            sock.close()
+
         except:
             self.nodes.pop(index)
-            if len(self.nodes) == 1:
-                sock.close()
-                return
-            self.forwarding(id, type)
+            if len(self.nodes) != 1:
+                self.forwarding(id, type)
             sock.close()
-            return
-
-        if self.verbose:
-            verb.print_log_tx(self.logging, dest, (self.ip, self.port),
-                              self.id, eval(msg.decode('utf-8')))
-
-        sock.send(msg)
-        sock.shutdown(socket.SHUT_RDWR)
-        sock.close()
 
    # useless method needed in the bully alg.
     def answer_msg(self):

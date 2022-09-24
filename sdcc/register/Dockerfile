@@ -10,5 +10,5 @@ WORKDIR /register
 COPY . .
 RUN pip install -r requirements.txt
 EXPOSE 54350
-CMD ["python3", "./register/run.py", "-v"]
+CMD ["python3", "./register/run.py", "-v", "-c ./config.json"]
 
