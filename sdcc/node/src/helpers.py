@@ -27,7 +27,7 @@ def get_id(port: int, list: list) -> int:
     return 0
 
 
-def create_msg(id: int, type: int, port: int, ip: str) -> dict:
+def create_msg(id: int, type: int, port: int, ip: str) -> bytes:
 
     msg = {'type': type, 'id': id, 'port': port, 'ip': ip}
     msg = json.dumps(msg)

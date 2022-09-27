@@ -26,7 +26,6 @@ class Node:
 
         self.algorithm = algorithm   # True for bully alg.
         self.verbose = verbose
-        self.logging = set_logging()
         self.delay = delay
 
     def start(self):
@@ -38,13 +37,15 @@ class Node:
         sock = create_socket(self.ip)
         sock.listen()
 
+        logging = set_logging()
+
         if self.verbose:
-            self.logging.debug("[Node]: (ip:{} port:{})\n[Triggered]\n".format(
-                self.ip, sock.getsockname()[1]))
+            logging.debug("[Node]: (ip:{} port:{})\n[Triggered]\n".format(
+                sock.getsockname()[0], sock.getsockname()[1]))
 
         # sends a request to join the network contacting the register node
         msg = create_msg(-1, Type['REGISTER'].value,
-                         sock.getsockname()[1], self.ip)
+                         sock.getsockname()[1], sock.getsockname()[0])
         dest = (self.ip_register, self.port_register)
 
         ephemeral_sock.connect(dest)
@@ -55,7 +56,7 @@ class Node:
         msg = eval(data.decode('utf-8'))
         identifier = get_id(sock.getsockname()[1], msg)
 
-        print_log_rx(self.verbose, self.logging, (self.ip, sock.getsockname()[1]),
+        print_log_rx(self.verbose, logging, (self.ip, sock.getsockname()[1]),
                      dest, identifier, msg)
 
         ephemeral_sock.close()

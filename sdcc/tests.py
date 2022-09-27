@@ -98,6 +98,7 @@ class Tests:
 class Utils:
 
     def __init__(self):
+        # empty constructor
         pass
 
     def generate_node(self, verbose: bool, algo: bool, delay: bool):

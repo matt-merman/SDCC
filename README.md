@@ -56,7 +56,7 @@ A _docker-compose.yml_ file has been defined to runs docker images (described in
 sudo docker-compose build                                       
 
 # to execute in SDCC/sdcc. To run containers
-sudo docker-compose up --no-recreate
+sudo docker-compose up --no-recreate --remove-orphans
 
 # to execute in SDCC/sdcc. To remove images created
 sudo docker system prune -a
@@ -64,14 +64,19 @@ sudo docker system prune -a
 
 ### AWS EC2 with Docker Containers
 
+[Ansible](https://docs.ansible.com/) service is used to automate the Docker installation and to copy the application code. 
+
 ```bash
-# Connect to EC2 instances
+# To check the ec2 instance (optional)
+ansible -i hosts.ini -m ping all
+
+# To execute ansible in SDCC/sdcc/ansible
+ansible-playbook -v -i hosts.ini deploy.yaml
+
+# Connect to EC2 instance
 ssh -i "SDCC_key.pem" ubuntu@ip_instance
 
-# Upload application to EC2 instance
-scp -i SDCC_key.pem -r SDCC/sdcc user@ip_instance:/home/user/  
-
-# Once have access to the instance, to execute the whole application
+# To execute the whole application
 sudo docker-compose up
 ```
 

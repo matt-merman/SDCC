@@ -1,6 +1,6 @@
 from . import helpers as help
 from .algorithm import Algorithm, Type
-from .constants import TOTAL_DELAY, HEARTBEAT_TIME
+from .constants import DEFAULT_ID, TOTAL_DELAY, HEARTBEAT_TIME
 import time
 import socket
 from . import verbose as verb
@@ -34,9 +34,9 @@ class Bully(Algorithm):
         self.participant = True
 
         # node with a lower identifier can begin an election
-        if index != len(self.nodes):
-            if self.low_id_node(sock, index) == 0:
-                return
+        if (index != len(self.nodes)) and (self.low_id_node(sock, index) == 0):
+            sock.close()
+            return
 
         # node with the highest identifier,
         # or who does not receive answers
@@ -56,14 +56,14 @@ class Bully(Algorithm):
                     (self.nodes[node]["ip"], self.nodes[node]["port"]))
                 self.forwarding(self.nodes[node], self.id, Type['END'], sock)
                 sock.close()
-            except:
+            except ConnectionRefusedError:
                 continue
 
         self.lock.release()
 
     def low_id_node(self, sock: socket, index: int) -> int:
 
-        self.coordinator = -1
+        self.coordinator = DEFAULT_ID
         self.checked_nodes = len(self.nodes) - index
         ack_nodes = self.checked_nodes
 
@@ -73,7 +73,7 @@ class Bully(Algorithm):
                 sock.connect(
                     (self.nodes[node]["ip"], self.nodes[node]["port"]))
             # if a node is no more available contact the next one
-            except:
+            except ConnectionRefusedError:
                 continue
 
             self.forwarding(self.nodes[node],
@@ -130,10 +130,12 @@ class Bully(Algorithm):
     def election_msg(self, msg: dict):
 
         self.lock.acquire()
+
         sock = help.create_socket(self.ip)
         sock.connect((msg["ip"], msg["port"]))
         self.forwarding(msg, self.id, Type['ANSWER'], sock)
         sock.close()
+
         if self.participant == False:
             self.lock.release()
             self.start_election()

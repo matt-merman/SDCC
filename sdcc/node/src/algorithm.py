@@ -4,7 +4,7 @@ import time
 import signal as sign
 import sys
 from . import helpers as help
-from .constants import TOTAL_DELAY, BUFF_SIZE, HEARTBEAT_TIME
+from .constants import TOTAL_DELAY, BUFF_SIZE, HEARTBEAT_TIME, DEFAULT_ID
 from abc import ABC, abstractmethod
 from threading import Thread, Lock
 from . import verbose as verb
@@ -40,7 +40,7 @@ class Algorithm(ABC):
         self.socket = socket
         self.algo = algo
 
-        self.coordinator = -1
+        self.coordinator = DEFAULT_ID
         self.lock = Lock()
 
         # boolean params passed by command line
@@ -103,6 +103,7 @@ class Algorithm(ABC):
                                   (self.ip, self.port), self.id, eval(msg.decode('utf-8')))
 
                 conn.send(msg)
+                conn.close()
                 continue
 
             elif data["type"] == Type['ANSWER'].value:
@@ -115,6 +116,7 @@ class Algorithm(ABC):
                     }
 
             func[data["type"]](data)
+            conn.close()
 
     # method to manage a leaders' crash
     def crash(self):
@@ -155,7 +157,7 @@ class Algorithm(ABC):
                 self.receive_ack(hb_sock, dest, TOTAL_DELAY)
 
             # current leader suffers a crash
-            except:
+            except ConnectionRefusedError:
                 hb_sock.close()
                 self.crash()
 

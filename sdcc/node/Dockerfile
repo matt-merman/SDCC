@@ -1,13 +1,12 @@
-# sudo docker build -t node-image .  
-# sudo docker run --net host node-image
-# or in sdcc/
-#   sudo docker-compose up
-
 # syntax=docker/dockerfile:1
 FROM node:12-alpine
 RUN apk add --no-cache gcc musl-dev linux-headers python3 py3-pip python3-dev
 WORKDIR /node
-COPY . .
+COPY node/ .
+COPY config.json .
+COPY requirements.txt .
 RUN pip install -r requirements.txt
-CMD ["python3", "./node/run.py", "-v", "-c ./config.json"]
+CMD ["python3", "run.py", "-v", "-a", "bully", "-c", "./config.json"]
+#CMD ["python3", "run.py", "-v", "-c", "./config.json"]
+
 

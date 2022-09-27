@@ -1,36 +1,27 @@
 version: "3.9"
 
-networks:
-  sdcc_net_1:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.16.240.0/24
-          gateway: 172.16.240.1
-
 services:
-  register_10:
+  register:
+    hostname: register
+    container_name: register
     build: 
       context: ./
       dockerfile: register/Dockerfile
     stop_signal: SIGTERM
-   # network_mode: "host" 
-    networks:
-      sdcc_net_1:
-        ipv4_address: 172.16.240.2
-    ports:
-      - "8000:54350"
-  
-  node_60:
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+
+  node:
+    hostname: node
+    hostname: node
     build:
       context: ./
       dockerfile: node/Dockerfile
+    depends_on:
+      - register
     stop_signal: SIGTERM
-    #network_mode: "host"
-    # deploy: 
-    #   mode: replicated
-    #   replicas: 4
-    networks: 
-      - sdcc_net_1
-    ports:
-      - 65126    
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+    deploy: 
+      mode: replicated
+      replicas: 3

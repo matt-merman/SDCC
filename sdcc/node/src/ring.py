@@ -39,23 +39,23 @@ class Ring(Algorithm):
         self.lock.release()
 
     # process receives an elected message
-    def end_msg(self, data: dict):
+    def end_msg(self, msg: dict):
         self.lock.acquire()
         if self.coordinator == self.id:
             self.lock.release()
             return
 
         self.participant = False
-        self.coordinator = data["id"]
-        self.forwarding(data["id"], Type['END'])
+        self.coordinator = msg["id"]
+        self.forwarding(msg["id"], Type['END'])
         self.lock.release()
 
-    def election_msg(self, data: dict):
+    def election_msg(self, msg: dict):
 
         self.lock.acquire()
 
         # compares the identifier in the message with its own
-        current_id = data["id"]
+        current_id = msg["id"]
 
         # current node becomes the coordinator
         if current_id == self.id:
@@ -100,12 +100,12 @@ class Ring(Algorithm):
             sock.send(msg)
             sock.close()
 
-        except:
+        except ConnectionRefusedError:
             self.nodes.pop(index)
             if len(self.nodes) != 1:
                 self.forwarding(id, type)
             sock.close()
 
-   # useless method needed in the bully alg.
     def answer_msg(self):
+        # useless method needed in the bully alg.
         pass
