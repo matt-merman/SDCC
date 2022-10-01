@@ -1,14 +1,17 @@
-from signal import SIGINT
+import signal
 from psutil import process_iter
 from register.src.main import Register
 from node.src.main import Node
 from threading import Thread
 import logging
 import time
+import sys
 from multiprocessing import Process
 from node.src.constants import HEARTBEAT_TIME
 from random import randint
 from register.src.constants import SOCKET_TIMEOUT
+
+TEST_DURATION = 5
 
 
 class Tests:
@@ -28,11 +31,13 @@ class Tests:
         self.utils = Utils()
         self.logging = self.utils.set_logging()
 
+        signal.signal(signal.SIGINT, self.handler)
+
         thread_register = Thread(target=self.generate_register)
         thread_register.daemon = True
         thread_register.start()
 
-        time.sleep(SOCKET_TIMEOUT/4)
+        time.sleep(SOCKET_TIMEOUT/3)
 
         for _ in range(self.num_nodes):
             process = Process(target=self.utils.generate_node,
@@ -49,32 +54,32 @@ class Tests:
 
     def test_a(self):
 
-        time.sleep(HEARTBEAT_TIME * 3)
+        time.sleep(HEARTBEAT_TIME * TEST_DURATION)
 
         index = randint(0, self.num_nodes - 2)
         port = self.nodes[index]["port"]
         self.utils.kill_node(port)
 
-        time.sleep(HEARTBEAT_TIME * 3)
+        time.sleep(HEARTBEAT_TIME * TEST_DURATION)
 
         self.utils.terminate(port, self.nodes)
         self.logging.debug("====== Test A finished =====\n")
 
     def test_b(self):
 
-        time.sleep(HEARTBEAT_TIME * 3)
+        time.sleep(HEARTBEAT_TIME * TEST_DURATION)
 
         port = self.nodes[-1]["port"]
         self.utils.kill_node(port)
 
-        time.sleep(HEARTBEAT_TIME * 3)
+        time.sleep(HEARTBEAT_TIME * TEST_DURATION)
 
         self.utils.terminate(port, self.nodes)
         self.logging.debug("====== Test B finished =====\n")
 
     def test_c(self):
 
-        time.sleep(HEARTBEAT_TIME * 3)
+        time.sleep(HEARTBEAT_TIME * TEST_DURATION)
 
         port = self.nodes[-1]["port"]
         self.utils.kill_node(port)
@@ -83,7 +88,7 @@ class Tests:
         port = self.nodes[index]["port"]
         self.utils.kill_node(port)
 
-        time.sleep(HEARTBEAT_TIME * 3)
+        time.sleep(HEARTBEAT_TIME * TEST_DURATION)
 
         self.utils.terminate(port, self.nodes)
         self.logging.debug("====== Test C finished =====\n")
@@ -94,11 +99,15 @@ class Tests:
         register.send()
         self.nodes = register.get_list()
 
+    def handler(self, signum: int, frame):
+        print("Test interrupted")
+        sys.exit(1)
+
 
 class Utils:
 
     def __init__(self):
-        # empty constructor
+        # dummy constructor
         pass
 
     def generate_node(self, verbose: bool, algo: bool, delay: bool):
@@ -109,7 +118,7 @@ class Utils:
         for proc in process_iter():
             for conns in proc.connections(kind='inet'):
                 if conns.laddr.port == port:
-                    proc.send_signal(SIGINT)
+                    proc.send_signal(signal.SIGINT)
 
     def terminate(self, port: int, nodes: list):
         for index in range(len(nodes) - 1):

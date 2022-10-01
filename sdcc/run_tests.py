@@ -17,23 +17,6 @@ def test_c(test):
     test.test_c()
 
 
-def get_nodes():
-    while True:
-        try:
-            num = int(input("Insert nodes number\n"))
-        except ValueError:
-            print(INVALID_OUT)
-            continue
-        except KeyboardInterrupt:
-            print()
-            return
-
-        if num < 4:
-            print("Error (InvalidNumber): number of nodes must be greater then 4\n")
-        else:
-            return num
-
-
 def run():
 
     os.system("clear")
@@ -48,30 +31,26 @@ def run():
     while True:
         try:
             op = int(input(
-                "1. Node Failure\n2. Coordinator Failure\n3. Two nodes fail (include the Coordinator)\n4. Change Algorithm (Bully by default)\n5. Set Nodes (4 by default)\n6. Exit\n"))
+                "1. Node Failure\n2. Coordinator Failure\n3. Two nodes fail (include the Coordinator)\n4. Change Algorithm (Bully by default)\n5. Exit\n(NOTICE: 4 nodes except the register is spawning)\n"))
         except ValueError:
             print(INVALID_OUT)
             continue
         except KeyboardInterrupt:
             return
 
-        if op not in [1, 2, 3, 4, 5, 6]:
+        if op not in [1, 2, 3, 4, 5]:
             print(INVALID_OUT)
             continue
 
         if op == 4:
             algorithm = not(algorithm)
             if algorithm:
-                print("\n(Bully Algorithm configured)")
+                print("\nChang and Roberts Algorithm -> Bully Algorithm\n")
             else:
-                print("\n(Chang and Roberts Algorithm configured)")
+                print("\nBully Algorithm -> Chang and Roberts Algorithm\n")
             continue
 
         if op == 5:
-            nodes = get_nodes()
-            continue
-
-        if op == 6:
             return
 
         command = {1: test_a,

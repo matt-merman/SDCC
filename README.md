@@ -24,7 +24,13 @@ pip install -r requirements.txt
 
 ### Local without Docker Containers
 
-A _config.json_ (in _SDCC/sdcc_) file has been defined to manage all network settings (i.e., ip addresses, port numbers). Firstly you make running the register node:
+A _config.json_ (in _SDCC/sdcc_) file has been defined to manage all network settings (i.e., ip addresses, port numbers). To display the option set:
+
+```bash
+python3 run.py -h
+```
+
+Firstly you make running the register node:
 
 ```bash
 # to execute in SDCC/sdcc/register. The -v flag provides a verbose execution (i.e., all messages received and sent are showed)
@@ -47,22 +53,7 @@ Test execution can be handled as:
 sudo python3 run_tests.py
 ```
 
-### Local with Docker Containers
-
-A _docker-compose.yml_ file has been defined to runs docker images (described in _Dockerfile_ files).
-
-```bash
-# to execute in SDCC/sdcc. To build the images
-sudo docker-compose build                                       
-
-# to execute in SDCC/sdcc. To run containers
-sudo docker-compose up --no-recreate --remove-orphans
-
-# to execute in SDCC/sdcc. To remove images created
-sudo docker system prune -a
-```
-
-### AWS EC2 with Docker Containers
+### AWS EC2 instance with Docker Containers
 
 [Ansible](https://docs.ansible.com/) service is used to automate the Docker installation and to copy the application code. 
 

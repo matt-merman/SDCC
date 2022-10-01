@@ -7,7 +7,7 @@ from math import floor
 
 def delay(flag: bool, ub: int):
     if flag:
-        delay = randint(0, floor(ub/2))
+        delay = randint(0, floor(ub*(1.5)))
         time.sleep(delay)
 
 

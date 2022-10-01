@@ -87,6 +87,11 @@ class Algorithm(ABC):
 
             conn, addr = self.socket.accept()
             data = conn.recv(BUFF_SIZE)
+
+            # FIN ACK received
+            if not data:
+                continue
+
             data = eval(data.decode('utf-8'))
 
             verb.print_log_rx(self.verbose, self.logging, (self.ip, self.port),
@@ -94,7 +99,7 @@ class Algorithm(ABC):
 
             if data["type"] == Type['HEARTBEAT'].value:
 
-                help.delay(self.delay, HEARTBEAT_TIME*3)
+                help.delay(self.delay, TOTAL_DELAY)
 
                 msg = help.create_msg(
                     self.id, Type['ACK'].value, self.port, self.ip)
@@ -136,6 +141,7 @@ class Algorithm(ABC):
 
             time.sleep(HEARTBEAT_TIME)
             self.lock.acquire()
+
             # do not heartbeat the leader if current node is running an election
             # or if is the leader
             if self.participant or (self.coordinator == self.id):
@@ -148,11 +154,12 @@ class Algorithm(ABC):
             msg = help.create_msg(
                 self.id, Type['HEARTBEAT'].value, address[1], address[0])
 
+            dest = (info["ip"], info["port"])
+            verb.print_log_tx(self.verbose, self.logging, dest,
+                              (self.ip, self.port), self.id, eval(msg.decode('utf-8')))
+
             try:
-                dest = (info["ip"], info["port"])
                 hb_sock.connect(dest)
-                verb.print_log_tx(self.verbose, self.logging, dest,
-                                  (self.ip, self.port), self.id, eval(msg.decode('utf-8')))
                 hb_sock.send(msg)
                 self.receive_ack(hb_sock, dest, TOTAL_DELAY)
 
@@ -170,6 +177,14 @@ class Algorithm(ABC):
 
         try:
             data = sock.recv(BUFF_SIZE)
+
+            # when receive a FIN ACK it does not invoke recursive function
+            # due to maximum recursion depth exception
+            if not data:
+                sock.close()
+                self.crash()
+                return
+
             msg = eval(data.decode('utf-8'))
 
             # expected packet received (i.e., with current leaders' id and ack type)
@@ -187,7 +202,7 @@ class Algorithm(ABC):
                               dest, addr, self.id, msg)
             sock.close()
 
-        except socket.timeout:
+        except (socket.timeout, ConnectionResetError):
             sock.close()
             self.crash()
 

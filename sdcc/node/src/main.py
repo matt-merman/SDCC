@@ -4,7 +4,7 @@ import sys
 from .ring import Ring, Type
 from .verbose import set_logging, print_log_rx
 from .bully import Bully
-from .constants import BUFF_SIZE
+from .constants import BUFF_SIZE, DEFAULT_ID
 from .helpers import create_msg, get_id, create_socket
 
 
@@ -44,15 +44,26 @@ class Node:
                 sock.getsockname()[0], sock.getsockname()[1]))
 
         # sends a request to join the network contacting the register node
-        msg = create_msg(-1, Type['REGISTER'].value,
+        msg = create_msg(DEFAULT_ID, Type['REGISTER'].value,
                          sock.getsockname()[1], sock.getsockname()[0])
         dest = (self.ip_register, self.port_register)
 
-        ephemeral_sock.connect(dest)
+        try:
+            ephemeral_sock.connect(dest)
+        except ConnectionRefusedError:
+            print("Register node not available")
+            sock.close()
+            sys.exit(1)
+
         ephemeral_sock.send(msg)
 
         # waits to receive the complete list of network members
         data = ephemeral_sock.recv(BUFF_SIZE)
+        if not data:
+            sock.close()
+            print("Register node crashed")
+            sys.exit(1)
+
         msg = eval(data.decode('utf-8'))
         identifier = get_id(sock.getsockname()[1], msg)
 
@@ -61,7 +72,7 @@ class Node:
 
         ephemeral_sock.close()
 
-        # check if current node is the last one
+        # check if current node is the only one
         if (len(msg) == 1):
             sock.close()
             print("Not enough nodes generated!")
