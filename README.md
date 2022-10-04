@@ -24,7 +24,26 @@ pip install -r requirements.txt
 
 ### Local without Docker Containers
 
-A _config.json_ (in _SDCC/sdcc_) file has been defined to manage all network settings (i.e., IP addresses, port numbers). To display the options set:
+The complete list of flags is:
+
+```bash
+$ python3 run.py -h                                                     
+
+usage: run.py [-h] [-v] [-d] [-a {ring,bully}] [-c CONFIG_FILE]  
+
+Implementation of distributed election algorithms. Generic node.  
+
+optional arguments:   
+    -h, --help            show this help message and exit   
+    -v, --verbose         increase output verbosity   
+    -d, --delay           generate a random delay to forwarding messages   
+    -a {ring,bully}, --algorithm {ring,bully}                         
+                            ring by default   
+    -c CONFIG_FILE, --config_file CONFIG_FILE
+                            needed a config file in json format
+```
+
+The _config.json_ (in _SDCC/sdcc_) file has been defined to manage all network settings (i.e., IP addresses, port numbers). To display the options set:
 
 ```bash
 python3 run.py -h

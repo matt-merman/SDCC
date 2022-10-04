@@ -6,6 +6,5 @@ COPY register/ .
 COPY config.json .
 COPY requirements.txt .
 RUN pip install -r requirements.txt
-CMD ["python3", "run.py", "-v", "-a", "bully", "-c", "./config.json"]
-#CMD ["python3", "run.py", "-v", "-c", "./config.json"]
+CMD ["python3", "run.py", "-v", "-c", "./config.json"]
 

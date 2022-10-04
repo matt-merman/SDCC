@@ -3,8 +3,9 @@ import socket
 import time
 import signal as sign
 import sys
+import os
 from . import helpers as help
-from .constants import TOTAL_DELAY, BUFF_SIZE, HEARTBEAT_TIME, DEFAULT_ID
+from .constants import LISTENING, TOTAL_DELAY, BUFF_SIZE, HEARTBEAT_TIME, DEFAULT_ID
 from abc import ABC, abstractmethod
 from threading import Thread, Lock
 from . import verbose as verb
@@ -85,7 +86,21 @@ class Algorithm(ABC):
 
         while True:
 
-            conn, addr = self.socket.accept()
+            self.lock.acquire()
+            if self.coordinator == self.id:
+                self.socket.settimeout(LISTENING)
+            else:
+                self.socket.settimeout(None)
+            self.lock.release()
+
+            try:
+                conn, addr = self.socket.accept()
+            except socket.timeout:
+                self.logging.debug("[Node]: (ip:{} port:{} id:{})\n[Terminates]\n".format(
+                    self.ip, self.port, self.id))
+                self.socket.close()
+                os._exit(1)
+
             data = conn.recv(BUFF_SIZE)
 
             # FIN ACK received
@@ -144,7 +159,7 @@ class Algorithm(ABC):
 
             # do not heartbeat the leader if current node is running an election
             # or if is the leader
-            if self.participant or (self.coordinator == self.id):
+            if self.participant or (self.coordinator in [self.id, DEFAULT_ID]):
                 self.lock.release()
                 continue
 
@@ -177,34 +192,34 @@ class Algorithm(ABC):
 
         try:
             data = sock.recv(BUFF_SIZE)
-
-            # when receive a FIN ACK it does not invoke recursive function
-            # due to maximum recursion depth exception
-            if not data:
-                sock.close()
-                self.crash()
-                return
-
-            msg = eval(data.decode('utf-8'))
-
-            # expected packet received (i.e., with current leaders' id and ack type)
-            if (msg["id"] == self.coordinator) and (msg["type"] == Type["ACK"].value):
-                self.lock.release()
-
-            # invalid packet received (e.g., a delayed ack by the previous leader)
-            else:
-                stop = round(time.time())
-                waiting -= (stop-start)
-                self.receive_ack(sock, dest, waiting)
-
-            addr = (msg["ip"], msg["port"])
-            verb.print_log_rx(self.verbose, self.logging,
-                              dest, addr, self.id, msg)
-            sock.close()
-
         except (socket.timeout, ConnectionResetError):
             sock.close()
             self.crash()
+            return
+
+        # when receive a FIN ACK it does not invoke recursive function
+        # due to maximum recursion depth exception
+        if not data:
+            sock.close()
+            self.crash()
+            return
+
+        msg = eval(data.decode('utf-8'))
+
+        # expected packet received (i.e., with current leaders' id and ack type)
+        if (msg["id"] == self.coordinator) and (msg["type"] == Type["ACK"].value):
+            self.lock.release()
+
+        # invalid packet received (e.g., a delayed ack by the previous leader)
+        else:
+            stop = round(time.time())
+            waiting -= (stop-start)
+            self.receive_ack(sock, dest, waiting)
+
+        addr = (msg["ip"], msg["port"])
+        verb.print_log_rx(self.verbose, self.logging,
+                          dest, addr, self.id, msg)
+        sock.close()
 
     def handler(self, signum: int, frame):
         self.logging.debug("[Node]: (ip:{} port:{} id:{})\n[Killed]\n".format(

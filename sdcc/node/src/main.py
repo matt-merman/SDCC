@@ -61,13 +61,13 @@ class Node:
         data = ephemeral_sock.recv(BUFF_SIZE)
         if not data:
             sock.close()
-            print("Register node crashed")
+            print("Register node is crashed")
             sys.exit(1)
 
         msg = eval(data.decode('utf-8'))
         identifier = get_id(sock.getsockname()[1], msg)
 
-        print_log_rx(self.verbose, logging, (self.ip, sock.getsockname()[1]),
+        print_log_rx(self.verbose, logging, (sock.getsockname()[0], sock.getsockname()[1]),
                      dest, identifier, msg)
 
         ephemeral_sock.close()
@@ -79,8 +79,8 @@ class Node:
             sys.exit(1)
 
         if self.algorithm:
-            Bully(self.ip, sock.getsockname()[1], identifier,
+            Bully(sock.getsockname()[0], sock.getsockname()[1], identifier,
                   msg, sock, self.verbose, self.delay, self.algorithm)
         else:
-            Ring(self.ip, sock.getsockname()[1], identifier,
+            Ring(sock.getsockname()[0], sock.getsockname()[1], identifier,
                  msg, sock, self.verbose, self.delay, self.algorithm)

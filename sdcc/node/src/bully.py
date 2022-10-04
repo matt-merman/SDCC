@@ -31,6 +31,7 @@ class Bully(Algorithm):
         self.lock.acquire()
         index = help.get_index(self.id, self.nodes) + 1
         self.participant = True
+        self.coordinator_msg = False
         # node with a low identifier can begin an election
         if (index != len(self.nodes)) and (self.low_id_node(index) == 0):
             return
@@ -87,8 +88,10 @@ class Bully(Algorithm):
             if self.checked_nodes != ack_nodes:
                 self.lock.release()
                 # wait a further period for a coordinator message
-                self.further_waiting()
-                return 0
+                if self.further_waiting() == 0:
+                    return 0
+                else:
+                    return 1
             self.lock.release()
 
         self.lock.acquire()
@@ -103,15 +106,14 @@ class Bully(Algorithm):
                 self.participant = False
                 self.coordinator_msg = False
                 self.lock.release()
-                return
+                return 0
             self.lock.release()
 
         # if the coordinator message has not been received
         # node starts a new election
         self.lock.acquire()
         self.participant = False
-        self.lock.release()
-        self.start_election()
+        return 1
 
     def answer_msg(self):
         self.lock.acquire()

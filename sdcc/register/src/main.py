@@ -60,7 +60,7 @@ class Register:
 
                 self.connections.append(conn)
                 node = dict(
-                    {'ip': msg["ip"], 'port': msg["port"], 'id': identifier})
+                    {'ip': addr[0], 'port': msg["port"], 'id': identifier})
                 self.nodes.append(node)
 
                 help.print_log_rx(self.verbose, self.logging, (self.ip, self.port),

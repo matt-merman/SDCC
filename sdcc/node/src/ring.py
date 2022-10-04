@@ -3,6 +3,7 @@ from . import helpers as help
 from .algorithm import Algorithm, Type
 from . import verbose as verb
 import sys
+import os
 import socket
 
 
@@ -102,9 +103,12 @@ class Ring(Algorithm):
 
         except ConnectionRefusedError:
             self.nodes.pop(index)
+            sock.close()
             if len(self.nodes) != 1:
                 self.forwarding(id, type)
-            sock.close()
+            else:
+                self.socket.close()
+                os._exit(1)
 
     def answer_msg(self):
         # useless method needed in the bully alg.
