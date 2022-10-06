@@ -72,7 +72,7 @@ In the following, we describe the services used by the algorithms, the implement
 
 The \textbf{register service} provides knowledge of the entire network to all nodes belonging to it. Moreover, it generates a unique random ID for each member of the topology (see \ref{fig:register}). 
 
-The register node listens by default on the \textbf{TCP} port \textit{1234} (it can be changed from \textit{SDCC/sdcc/config.json}). The listening window is kept open for a \textit{SOCKET\_TIMEOUT} period (defined in \textit{SDCC/sdcc/register/src/constants.py}) after which a node receives the member's network list. 
+The register node listens by default on the \textbf{TCP} port \textit{1234} (it can be changed from \textit{SDCC/sdcc/local_config.json}). The listening window is kept open for a \textit{SOCKET\_TIMEOUT} period (defined in \textit{SDCC/sdcc/register/src/constants.py}) after which a node receives the member's network list. 
 
 Initially, every node has an ID equal to \textit{DEFAULT\_ID} (by default set to \textit{-1}). Instead, the register is identified by value \textit{0}. After the register phase, a unique ID to each node is associated.
 

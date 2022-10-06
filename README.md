@@ -43,7 +43,7 @@ optional arguments:
                             needed a config file in json format
 ```
 
-The _config.json_ (in _SDCC/sdcc_) file has been defined to manage all network settings (i.e., IP addresses, port numbers). To display the options set:
+The _local_config.json_ (in _SDCC/sdcc_) file has been defined to manage all network settings (i.e., IP addresses, port numbers). To display the options set:
 
 ```bash
 python3 run.py -h
@@ -53,14 +53,14 @@ Firstly you make running the register node:
 
 ```bash
 # to execute in SDCC/sdcc/register. The -v flag provides a verbose execution (i.e., all messages received and sent are shown)
-python3 run.py -v -c ../config.json
+python3 run.py -v -c ../local_config.json
 ```
 
 A single node can be executed as:
 
 ```bash
 # to execute in SDCC/sdcc/node. Without the '-a bully' option node runs the ring-based alg.
-python3 run.py -v -a bully -c ../config.json
+python3 run.py -v -a bully -c ../local_config.json
 ```
 
 #### Tests

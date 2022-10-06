@@ -1,9 +1,0 @@
-{
-    "register": {
-        "ip": "register",
-        "port": 1234
-    },
-    "node": {
-        "ip": ""
-    }
-}

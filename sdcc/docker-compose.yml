@@ -7,21 +7,19 @@ services:
     build: 
       context: ./
       dockerfile: register/Dockerfile
-    stop_signal: SIGTERM
     stdin_open: true # docker run -i
     tty: true        # docker run -t
 
   node:
-    hostname: node
-    hostname: node
+    # hostname: node
+    # container_name: node
     build:
       context: ./
       dockerfile: node/Dockerfile
     depends_on:
       - register
-    stop_signal: SIGTERM
     stdin_open: true # docker run -i
     tty: true        # docker run -t
     deploy: 
       mode: replicated
-      replicas: 3
+      replicas: 4
