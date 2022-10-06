@@ -2,6 +2,7 @@ from . import helpers as help
 from .algorithm import Algorithm, Type
 from .constants import DEFAULT_ID, TOTAL_DELAY, HEARTBEAT_TIME
 import time
+import os
 import socket
 from . import verbose as verb
 
@@ -44,6 +45,7 @@ class Bully(Algorithm):
 
         # send a coordinator message to all processes
         # with lower identifiers
+        close = False
         for node in range(len(self.nodes) - 1):
             sock = help.create_socket(self.ip)
             if node == (index - 1):
@@ -51,11 +53,18 @@ class Bully(Algorithm):
             try:
                 sock.connect(
                     (self.nodes[node]["ip"], self.nodes[node]["port"]))
+                close = True
                 self.forwarding(self.nodes[node], self.id, Type['END'], sock)
                 sock.close()
             except ConnectionRefusedError:
                 sock.close()
                 continue
+
+        if not close:
+            self.logging.debug("[Node]: (ip:{} port:{} id:{})\n[Terminates]\n".format(
+                self.ip, self.port, self.id))
+            self.socket.close()
+            os._exit(1)
 
         self.lock.release()
 
