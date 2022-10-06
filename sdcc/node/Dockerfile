@@ -6,7 +6,7 @@ COPY node/ .
 COPY aws_config.json .
 COPY requirements.txt .
 RUN pip install -r requirements.txt
-#CMD ["python3", "run.py", "-v", "-a", "bully", "-c", "./aws_config.json"]
-CMD ["python3", "run.py", "-v", "-c", "./aws_config.json"]
+CMD ["python3", "run.py", "-v", "-a", "bully", "-c", "./aws_config.json"]
+#CMD ["python3", "run.py", "-v", "-c", "./aws_config.json"]
 
 
