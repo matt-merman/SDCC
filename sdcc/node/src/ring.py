@@ -1,10 +1,11 @@
-from .constants import HEARTBEAT_TIME
+from .constants import HEARTBEAT_TIME, LISTENING
 from . import helpers as help
 from .algorithm import Algorithm, Type
 from . import verbose as verb
 import sys
 import os
 import socket
+import time
 
 
 class Ring(Algorithm):
@@ -26,6 +27,7 @@ class Ring(Algorithm):
 
     def start_election(self):
 
+        #time.sleep(5)
         self.lock.acquire()
 
         # check if current node is the last one
@@ -84,7 +86,7 @@ class Ring(Algorithm):
     def forwarding(self, id: int, type: Type):
 
         sock = help.create_socket(self.ip)
-        help.delay(self.delay, HEARTBEAT_TIME)
+        help.delay(self.delay, LISTENING)
 
         index = help.get_index(self.id, self.nodes) + 1
         if index >= len(self.nodes):

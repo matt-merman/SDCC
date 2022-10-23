@@ -1,6 +1,6 @@
 from . import helpers as help
 from .algorithm import Algorithm, Type
-from .constants import DEFAULT_ID, TOTAL_DELAY, HEARTBEAT_TIME
+from .constants import DEFAULT_ID, TOTAL_DELAY
 import time
 import os
 import socket
@@ -73,7 +73,7 @@ class Bully(Algorithm):
         self.coordinator = DEFAULT_ID
         self.checked_nodes = len(self.nodes) - index
         ack_nodes = self.checked_nodes
-
+        exit = False
         # election messages are sent to those processes that have a higher identifier
         for node in range(index, len(self.nodes)):
             sock = help.create_socket(self.ip)
@@ -83,12 +83,14 @@ class Bully(Algorithm):
                 self.forwarding(self.nodes[node],
                                 self.id, Type['ELECTION'], sock)
                 sock.close()
+                exit = True
             # if a node is no more available contact the next one
             except ConnectionRefusedError:
                 sock.close()
                 continue
 
-        self.lock.release()
+        if exit == False: return 1
+        self.lock.release()        
         # awaiting answer messages in response
         timeout = time.time() + TOTAL_DELAY
         while (time.time() < timeout):
@@ -157,7 +159,7 @@ class Bully(Algorithm):
 
     def forwarding(self, node: dict, id: int, type: Type, conn: socket):
 
-        help.delay(self.delay, HEARTBEAT_TIME)
+        help.delay(self.delay, TOTAL_DELAY)
         dest = (node["ip"], node["port"])
         msg = help.create_msg(id, type.value, self.port, self.ip)
         verb.print_log_tx(self.verbose, self.logging, dest,
